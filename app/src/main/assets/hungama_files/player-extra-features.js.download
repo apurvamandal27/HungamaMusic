@@ -1,0 +1,90 @@
+console.log("jwhungama: player-extra-features.js update date 31 - May - 2017 / 12:07");
+function songChanged(vtype, obj){
+	$('#showMovie').remove();
+	var showVideo_pop ='<div class="jw-extra-pop" id="showMovie">';
+	if(vtype=="movie"){
+		 showVideo_pop += '<div class="pop_header topStrip">Watch the Movie</div><div class="movie-Poster"><img src="'+obj.img_src+'" width="200" height="107" alt=""><div class="overlay"></div><a href="#" class="playerICons jw-btnPlay"></a></div><div class="btmStrip"><a href="#" class="movieTitle">'+obj.album_name+' | <span>'+obj.date+'</span></a></div></div>';
+	}
+	else{
+		 showVideo_pop +='<div class="pop_header topStrip">Watch & Download</div><div class="movie-Poster"><img src="'+obj.img_src+'" width="200" height="107" alt=""><div class="overlay"></div><a href="#" class="playerICons jw-btnPlay"></a></div><div class="btmStrip"><a href="#" class="movieTitle">'+obj.song_name+'  <span class="dblock">'+obj.date+'</span></a></div></div>';
+	}
+	$('body').append(showVideo_pop);
+	if($('#showMovie').length>0){
+		setTimeout(function(){$('#showMovie').addClass('show')},500);
+		setTimeout(function(){$('#showMovie').removeClass("show")},3000);
+	}
+}
+var intvar=0;
+var apn_sec = 0;
+function start_APN_Interval(){
+   intvar = setInterval(function(){ 
+      apn_sec--;
+      $("#autoplayNotification .countDownTimer").text(apn_sec);
+      if(apn_sec==1){
+         clearInterval(intvar);
+      }
+   }, 1000);  
+}
+function autoPlayNotification(sec,text,item,shown){
+   apn_sec = sec;
+   //console.log("sec: "+sec);
+   var apn = '<div id="autoplayNotification"><h2 class="title">Next video</h2><div class="clearfix"><div class="mv_thmb"><img src="'+item.imagethumb+'"/><a href="javascript:;" onclick="playNextVideo();" class="overlay"><span><i class="icon-ic_play-84 icon-ic_play"></i></span></a></div><div class="autoplay_othdtls"><p class="mv_Title">'+item.title+'</p><p class="mv_dtls">'+item.year+' | '+item.lang+' | '+item.genre+'</p><!--p>'+text+'<span class="countDownTimer">'+apn_sec+'</span></p--></div></div></div>';
+   if(!shown){
+      $("#hun_vp.videoPlayer").append(apn);
+   }
+   start_APN_Interval();
+}
+function jw_pause_evt(id){
+   clearInterval(intvar);
+}
+function jw_playing(type,id){
+   if($("#autoplayNotification").length>0){
+      start_APN_Interval();
+   }
+}
+function earnCoins_pop(){
+$('#shownewplaylist').remove();	
+hidePop();
+var showEarn_pop = '<div class="jw-earn-pop" id="shownewplaylist"><!--a class="btn_closepopex playerICons" href="javascript:" onclick="hidePop()"></a--><h2 class="cointit">You’ve created a New Playlist!</h2><p class="earntit">You have earned</p><div class="earncoin"><span class="icon-ic_coins-69"></span>250</div><div class="unlockpan clearfix">	<div class="lockicn"></div><div class="loctxt">Unlock ShuffieGuru Lev’2 with 28 more Playlist</div></div></div>';
+$('body').append(showEarn_pop);
+if($('#shownewplaylist').length>0){
+		setTimeout(function(){$('#shownewplaylist').addClass('show')},500);
+		setTimeout(function(){$('#shownewplaylist').removeClass('show')},2500);
+	}
+}
+
+
+function show_error(html){
+$('#shownewplaylist').remove();	
+hidePop();
+var showEarn_pop = '<div class="jw-earn-pop" id="shownewplaylist">'+html+'</div>';
+$('body').append(showEarn_pop);
+if($('#shownewplaylist').length>0){
+		setTimeout(function(){$('#shownewplaylist').addClass('show')},500);
+		setTimeout(function(){$('#shownewplaylist').removeClass('show')},2500);
+	}
+}
+
+// reward coin popup
+function show_downmp3(){
+	$(".jw-pop-inner").addClass("alert_wdth");
+	var rewardcoin_html = '<div class="dwnsng clearfix"><div class="dwnimg"><img src="assets/images/dwnimg.jpg" width="50" height="50" alt=""/></div><div class="dwnrht"><p>Manma Emotion Jaage</p><p class="dwntxt">Dilwale</p></div></div><div class="coupdv"><div class="clearfix"><a href="#" class="gobackBtn">Apply</a><div class="couplft formRow"><input class="customInput" id="couponCode"><label for="couponCode" class="customLable">Enter coupon code</label></div></div><div class="errpop">Invalid coupon code. Please try again</div></div><div class="redpadlft"><p class="hcoinearn"><a class="howcoinbl" href="#">Have a Coupon Code?</a></p><p class="redeecoin">Redeem with coins</p><div class="clearfix redpont"><div class="redpontlft">Available Coins</div><div class="redpontrht">100 <span class="icon-ic_coins-69"></span></div></div><div class="clearfix redpont"><div class="redpontlft">Required coins</div><div class="redpontrht">50 <span class="icon-ic_coins-69"></span></div></div><div class="howcoin"><a href="javascript:;" class="howcoinbl earnconpop">How to Earn Coins</a></div><div class="redeempont"><a href="#" class="gobackBtn">Redeem Now</a><p class="ortxt">or</p></div><div class="selectplan"><a href="#" class="saveBtn">Select Plan</a></div></div>';
+	showPopup("Download mp3 & own for life!",rewardcoin_html);
+	$(".howcoinbl").click(function(){$('.hcoinearn').hide();$('.coupdv').fadeIn();});
+	$(".earnconpop").click(function(){show_rewardcoin();});
+	 $('#jw-common-popup').addClass('fullscreen');  
+} 
+
+
+$(document).ready(function(e) {    
+	$('.btn_closepopex').click(function() {
+		$('#shownewplaylist').hide().remove();
+	});
+});
+
+$(document).on('focus','.customInput',function(e) {
+	$(this).parents('.formRow').addClass('focused');
+}).on('blur','.customInput',function(e) {
+	if($(this).val()=="")
+		$(this).parents('.formRow').removeClass('focused');
+});

@@ -1,0 +1,1263 @@
+	var videoposition=0;
+	var videoPlaylist;
+	var current_Index=0;
+	var divElement;
+	var videoplayed = false;
+	var singleVideoPlaylist = '';
+	var singleVideoPlaylist_1='';
+	var videoStart=0;
+	var vidoeEnd=0;
+	var watchflag=0;
+	var Iosfirsttab=0;
+	function check_logged_in_status(){
+        if (hungamaGetCookie('h_profile')) {
+            cookie_details = JSON.parse(hungamaGetCookie('h_profile'));
+            if(cookie_details['status'] == 1){
+                return 'yes';
+            }else{
+				return 'no';
+			}
+        }
+	}
+
+	function getURLParameterHungama(name) {
+	  return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search) || [null, ''])[1].replace(/\+/g, '%20')) || null;
+	} 
+	
+	function playVideoQueue(videoposition,playlist_id) {
+		$(window).scrollTop(0);
+		$("#loader-wrapper").hide();
+		$('#movcountnum').val(0);
+		var vplaylistid = playlist_id;
+		playvideofromplaylist(videoposition);
+	}
+	
+	function loadsimilar(id){
+		var huid=hungamaGetCookie('_huid');
+		$.ajax({
+			type: 'GET',
+			url: $('#origin_url').val() + 'ajax-data.html?c=video&m=getSimilarVideo',	
+			data: {'content_id': id,'huid':huid},
+			success: function (data, status)
+			{
+				var response = JSON.parse(data);
+				 if(response.status == 'SUCCESS')
+				 {
+					videoPlaylist = JSON.stringify(response.similar);
+					var videoplaylisthtml =response.disp_message 
+					$('#songsList').append(videoplaylisthtml);
+					var divHeight1 = $('.listtop').height();
+					var divHeight = $('.video-player-cont').height() - divHeight1;
+					$('#songsList').css({'height': divHeight+'px'});
+					$("#songsList.mCustomScrollbar").mCustomScrollbar({}); 
+				}else{
+				}
+			}
+		});
+	}
+	
+	function autoplayflag(){
+		var videoautoplay = hungamaGetCookie('_hvpl');
+		if(videoautoplay=='0'){ 
+				isvideoautoplay = 'true'; 
+				$("#hun_vp #autoPlaySwitch").attr("checked",false);
+		}else{ 
+				isvideoautoplay = 'false'; $("#hun_vp #autoPlaySwitch").attr("checked",true); 
+		}
+	}
+	function jw_vid_autoplay_changed(val){
+		if(val==1){
+			hungamaSetCookie('_hvpl','1', 365);
+			$("#hun_vp #autoPlaySwitch").attr("checked",true);
+			
+		}else{
+			hungamaSetCookie('_hvpl','0', 365);
+			$("#hun_vp #autoPlaySwitch").attr("checked",false);
+		}
+	}
+	
+	function jw_resume(val,id){
+	console.log("jw_resume"+val+"/"+id);
+	if (val == 'video' && audio != null){	
+			if(id!=1){
+				audio.pause(true);
+				show_hide_ap('hide');
+			}
+	} else if (val == 'audio' && player1Obj != null){
+		player1Obj.pause(true);
+	}
+}
+	
+	function playvideofromplaylist(videoposition){
+		$('#jw_player_notification').remove();
+		$('#autoplayNotification').remove();
+		var playlist=videoPlaylist;
+		var playlist_array=JSON.parse(playlist);
+		var vname = playlist_array[videoposition]['title'];
+		var videoid = playlist_array[videoposition]['mediaid'];
+		var userId='';
+		var userName='';
+		var	show_ad=0;	
+		current_Index=parseInt(videoposition);
+		$('#movcountnum').val(0);
+		
+		if (hungamaGetCookie('h_profile')) {
+			profile = JSON.parse(hungamaGetCookie('h_profile'));
+			if(profile['status'] == 1){
+					if(profile != null) {
+						if(profile['userId'] != null) {
+							userId = profile['userId'];
+						}
+						if(profile['userName']!= null) {
+							userName = profile['userName'];
+						}
+						if(player1Obj){
+							player1Obj.config.userid = userId;
+							player1Obj.config.email = userName;
+						}
+					}				
+			}
+		}
+		var ad_set_arr={};
+		var data='content_id='+videoid+'&action=video&vendor_id='+vendor_id;
+		$.ajax({
+			type: 'POST',
+			url: $('#origin_url').val()+'index.php?c=common&m=get_video_mdn_url',
+			data: data,
+			success: function (response) {
+				var video_url_arr = JSON.parse(response);
+				var videourl=video_url_arr['stream_url'];
+				var viewingTime=video_url_arr['viewtime'];
+				var type=video_url_arr['type'];
+				if(video_url_arr['add_show']==1){
+					ad_set_arr=addLogic(video_url_arr['add_show']);
+				}
+				singleVideoPlaylist_1 = {"file":videourl.trim(),"type":type, "image": "","title":vname,"mediaid":videoid, "contenttype":"videos","ad_setup":ad_set_arr};
+				divElement = $('#video-playlist-player');
+				if(player1Obj){
+				 player1Obj.config.playertype='video';
+				}
+				setTimeout(function(){
+					disp_Vdo_player(divElement, singleVideoPlaylist_1);
+					$("#vdo-player").removeClass("playmovie");
+					$("#vdo-player").addClass('playvideo');
+					highlightFromList(current_Index);
+					autoplayflag();
+					$('.liveRibbon').remove();
+					$(window).trigger('resize');
+					$('.watch-playlist #songsList li').css("background", "").eq(videoposition).css("background", "#333");
+				},200);	
+				window.scrollTo(0, 0);
+			}
+		});
+		userFavorite(videoid);
+	}
+
+	
+	function showApnPopup(){
+		if(!isTouchDevice){
+			var autopop=0;
+			var category=document.getElementById("category").value;	
+			if(category=='video_dtl')
+			{	
+				if(videoPlaylist.length>0){
+					var playlist=videoPlaylist;
+					var playlist_array=JSON.parse(playlist);
+					var playlist_length=playlist_array.length-1;
+					var itm_dtl=playlist_array[0];
+					$("#autoplayNotification").remove();
+					autoPlayNotification(10,'next movie',itm_dtl);
+				}
+				
+			}else if(category=='video_playlist_queue'){
+				if(videoPlaylist.length>0){
+					var playlist=videoPlaylist;
+					var playlist_array=JSON.parse(playlist);
+					var playlist_length=playlist_array.length-1;
+					if(current_Index<playlist_length){
+						var itm_dtl=playlist_array[current_Index+1];
+						$("#autoplayNotification").remove();
+						autoPlayNotification(10,'next movie',itm_dtl);
+					}
+				}	
+			}
+			autopop=1;
+		}
+    }
+	
+	function next_prev_nav(){
+		if(videoposition==0){
+			$(".btnNxt").removeClass("disabled");
+			$(".btnPre").addClass("disabled");	
+		}else if(videoposition==JSON.parse(videoPlaylist).length-1){
+			$(".btnNxt").addClass("disabled");
+			$(".btnPre").removeClass("disabled");
+		}else{
+			$(".btnNxt").removeClass("disabled");
+			$(".btnPre").removeClass("disabled");
+		}
+	}
+	
+ function jw_videoStarted(type,mediaid){
+	if(divElement){ 
+		var playerPos_top = divElement.offset().top;
+		var playerPos_left = divElement.offset().left;
+		var playerWidth = divElement.width();
+		var playerHeight = (divElement.width()/16)*9;
+		divElement.height(playerHeight); 
+		$("#songsList").show();
+		//$("#vdo-player,#adContainer").css({"height":playerHeight, "width":playerWidth,"top":0,"left":playerPos_left});
+		$("#vdo-player").css({"height":playerHeight, "width":playerWidth,"top":0,"left":playerPos_left});
+		$("#adContainer").css({"height":playerHeight, "width":playerWidth,"top":0,"left":0});
+		$(window).trigger('resize');
+	}
+}
+
+function jw_adPlaying(){
+	if(divElement){ 
+		var playerPos_top = divElement.offset().top;
+		var playerPos_left = divElement.offset().left;
+		var playerWidth = divElement.width();
+		var playerHeight = (divElement.width()/16)*9;
+		divElement.height(playerHeight); 
+		$("#songsList").show();
+		//$("#vdo-player,#adContainer").css({"height":playerHeight, "width":playerWidth,"top":0,"left":playerPos_left});
+		$("#vdo-player").css({"height":playerHeight, "width":playerWidth,"top":0,"left":playerPos_left});
+		$("#adContainer").css({"height":playerHeight, "width":playerWidth,"top":0,"left":0});
+		$(window).trigger('resize');
+	}
+}
+
+
+	
+	function disp_Vdo_player(divElement, vdoPlaylist){
+		if(divElement.length>0){
+			var playerPos_top = divElement.offset().top;
+			var playerPos_left = divElement.offset().left;
+			var playerWidth = divElement.width();
+			var playerHeight = (divElement.width()/16)*9;
+			divElement.height(playerHeight);
+			var iPhoneDevices = (/iphone|iPad|iPod|macintosh|mac os x/i.test(navigator.userAgent.toLowerCase()));
+			if(vdoPlaylist.type=='hls' && iPhoneDevices==1){
+				if(player1Obj.config.playertype=='live'){
+					player1Obj.videoPlayerObj.src=vdoPlaylist.file;
+				}else{
+					vdoPlaylist.type='mp4';
+					//player1Obj.videoPlayerObj.src=vdoPlaylist.file;
+					player1Obj.load(vdoPlaylist);
+					player1Obj.play(true);
+				}
+			}else{
+				player1Obj.load(vdoPlaylist);
+				player1Obj.play(true);
+			}
+			show_hide_ap('hide');
+			divElement.find('img').hide();
+			$("#vdo-player").show();
+			
+			if(vdoPlaylist.watch_time > 0){	
+			}else{
+				console.log('playevent');
+				jw_events("play", singleVideoPlaylist_1);
+			}
+			
+			setTimeout(function () {
+				$("#songsList").show();
+				$("#vdo-player").css({"height":playerHeight, "width":playerWidth,"top":0,"left":playerPos_left});
+				$("#adContainer").css({"height":playerHeight, "width":playerWidth,"top":0,"left":0});
+				$(window).trigger('resize');
+				if(vdoPlaylist.contenttype=='videos'){
+					next_prev_nav();
+				}
+				if(vdoPlaylist.contenttype=='movies'){
+					if (vdoPlaylist.watch_time > 0 && vdoPlaylist.movie_trailer != '1') {
+						watchflag=1;
+						showResumePopup(vdoPlaylist.watch_time);
+					}
+				}
+				setPlaylistScroll();
+			},200);
+			
+		}else{
+
+		}
+		
+	}
+	
+	function addLogic(show_ad){
+		 console.log('show_ads');
+		utmsourceval = getURLParameterHungama('utm_source');
+		if(utmsourceval=='mvas'){ isvideoautoplay = 'false';}	
+		var rt_url=window.location.href;
+		var jw_ad_client='vast';
+		//var jw_ad_tag='https://an.facebook.com/v1/instream/vast.xml?placementid=256908944753685_282170395560873&pageurl='+encodeURIComponent(rt_url);
+		var corr= Math.floor(Date.now());	
+		var jw_ad_tag='https://pubads.g.doubleclick.net/gampad/ads?sz=400x300|640x480&iu=/317733190/H.Com_Video_PrerollAd&impl=s&gdfp_req=1&env=vp&output=vast&unviewed_position_start=1&url='+rt_url+'&description_url='+rt_url+'&correlator='+corr;
+			if(show_ad==1){
+			   if(window.showAds) {
+				   console.log("Adblocker =>No");
+			   }else{   
+				console.log("Adblocker=>Yes");
+				$('#ad-blocker').show();
+				$('body').addClass('fixed');
+				ga('send', 'event', {
+							eventCategory: 'Adblocker',
+							eventAction: 'click',
+							eventLabel: event.target.href
+						  });
+				
+					if(player1Obj){
+						player1Obj.stop();
+					}	
+			   }
+			var ad_set_arr= {client:jw_ad_client,
+								 tag: jw_ad_tag};
+			}else{
+				var ad_set_arr={client:jw_ad_client,
+								 tag: ''};
+			}
+		
+	    return ad_set_arr;	
+	}
+	
+	function jw_adError(){	
+	    console.log('add_error');
+		var corr=Math.floor(Date.now());
+		var rt_url=window.location.href;	
+		/*player1Obj.playAd('https://pubads.g.doubleclick.net/gampad/ads?sz=400x300|640x480&iu=/317733190/H.Com_Video_PrerollAd&impl=s&gdfp_req=1&env=vp&output=vast&unviewed_position_start=1&url='+rt_url+'&description_url='+rt_url+'&correlator='+corr);*/
+	}
+
+	function addFallback(){
+		player1Obj.playAd('https://ima3vpaid.appspot.com/?adTagUrl=https%3A%2F%2Fgoogleads.g.doubleclick.net%2Fpagead%2Fads%3Fclient%3Dca-video-pub-4423520247396026%26slotname%3D4135965737%26ad_type%3Dvideo%26description_url%3Dhttp%253A%252F%252Fwww.hungama.com%252F%26max_ad_duration%3D30000%26videoad_start_delay%3D0&type=js');
+	}
+	
+	
+function setPlaylistScroll(){
+	$(".watch-playlist ul#songsList").mCustomScrollbar("destroy");
+	var divHeight1 = $('.listtop').height();
+	var divHeight = $('.video-player-cont').height() - divHeight1;
+	$('#songsList').css({'height': divHeight+'px'});
+	$(".watch-playlist ul#songsList").mCustomScrollbar().show();
+}	
+	
+
+    function videodata(id) {		
+		if(typeof id === 'undefined' || !id || id==1){
+
+		}else{
+			$.ajax({
+				type: 'GET',
+				url: $('#site_url').val() + 'video/get-video-data/' + id+'/',
+				success: function (result) {
+					var response = JSON.parse(result);
+					$(".vsong-name").html(response.name);
+					$(".year").html(response.year);
+					$(".details").html(response.details);
+					$(".details1").html(response.vendor);
+					$("#videoid").val(response.id);
+					$("#vname").val(response.name);
+					$("#vendor_id").val(response.vendor_id);
+				}
+			});
+		}
+    }
+
+    function playThis(index) {
+		console.log('playThis');
+		videoposition=index;
+        $("#jw_player_notification").remove();
+		$("#jw_player_notification .replysub").click(function(e) {
+			$("#jw_player_notification").remove();
+			player1Obj.seek(0);
+        });
+		
+		if(typeof player1Obj !== 'undefined' && player1Obj.getState()=='PLAYING'){
+			 jw_events("notFinishedContent", singleVideoPlaylist_1);
+		}
+		playvideofromplaylist(index);
+		$('.watch-playlist #songsList li').css("background", "").eq(index).css("background", "#333");
+		if(videoPlaylist.length>0){
+			var playlist=videoPlaylist;
+			var playlist_array=JSON.parse(playlist);
+			var mediaid = playlist_array[index]['mediaid'];
+			videodata(mediaid);
+		}
+    }
+
+
+	function highlightFromList(songIndex){
+		var cat=$('#category').val();
+		if(cat=='video_playlist_details' || cat=='video_playlist_queue'){
+			$('.watch-playlist #songsList li').css("background", "").eq(songIndex).css("background", "#333");	
+		}
+	} 
+	
+    function jw_video_player_previous_button_clicked(){
+		
+	   var category=document.getElementById("category").value;
+	   if(category=='video_playlist_queue' && current_Index > 0){
+			current_Index=parseInt(current_Index-1);
+			videoposition=current_Index;
+			if(videoPlaylist.length>0){
+				var playlist=videoPlaylist;
+				var playlist_array=JSON.parse(playlist);
+				var mediaid = playlist_array[current_Index]['mediaid'];
+				jw_events('notFinishedContent',singleVideoPlaylist_1);
+				playvideofromplaylist(current_Index);
+				$('.watch-playlist #songsList li').css("background", "").eq(current_Index).css("background", "#333");
+				videodata(mediaid);
+			}
+	   }
+    }
+
+    function jw_video_player_next_button_clicked(){
+       var category=document.getElementById("category").value;
+	   if(category=='video_dtl'){
+			   if(videoPlaylist.length>0){
+			   var playlist=videoPlaylist;
+			   var playlist_array=JSON.parse(playlist);
+			   var mediaid = playlist_array[current_Index]['mediaid'];
+			   var title = playlist_array[current_Index]['title'];
+			   var page_url=playlist_array[current_Index]['page_url'];
+			   jw_events('notFinishedContent',singleVideoPlaylist_1);
+			   pjaxLoadURL(page_url);
+		   }
+	   }else{
+		   if(videoPlaylist.length>0){
+				current_Index=parseInt(current_Index+1);
+				videoposition=current_Index;
+				var playlist=videoPlaylist;
+				var playlist_array=JSON.parse(playlist);
+				var mediaid = playlist_array[current_Index]['mediaid'];
+				jw_events('notFinishedContent',singleVideoPlaylist_1);
+				playvideofromplaylist(current_Index);
+				videodata(mediaid);
+				$('.watch-playlist #songsList li').css("background", "").eq(current_Index).css("background", "#333");
+		   }
+	   }
+    }
+	
+	function playNextVideo(){
+	   var category=document.getElementById("category").value;
+	   if(category=='video_dtl'){
+		   if(videoPlaylist.length>0){
+			   var playlist=videoPlaylist;
+			   var playlist_array=JSON.parse(playlist);
+			   var mediaid = playlist_array[current_Index]['mediaid'];
+			   var title = playlist_array[current_Index]['title'];
+			   var page_url=playlist_array[current_Index]['page_url'];
+			   jw_events('notFinishedContent',singleVideoPlaylist_1);
+			   pjaxLoadURL(page_url);
+		   }
+	   }else{
+		   if(videoPlaylist.length>0){
+				current_Index=parseInt(current_Index+1);
+				videoposition=current_Index;
+				var playlist=videoPlaylist;
+				var playlist_array=JSON.parse(playlist);
+				var mediaid = playlist_array[current_Index]['mediaid'];
+				jw_events('notFinishedContent',singleVideoPlaylist_1);
+				playvideofromplaylist(current_Index);
+				videodata(mediaid);
+				$('.watch-playlist #songsList li').css("background", "").eq(current_Index).css("background", "#333");
+		   }
+		}
+	}
+
+	function jw_pause_evt(type,contentID){
+		console.log('jwpause'+contentID);
+		var check=parseInt(contentID);
+		var category=document.getElementById("category").value;
+		if(category=='movie_dtl' || category=='tvshow_dtls' || category=='tvepisode_dtls'){
+		  continuewatching(); 
+		  show_hide_ap('show');
+		}else if(category=='video_dtl' || category=='video_playlist_queue'){
+			show_hide_ap('show');
+		}
+		
+		if(typeof contentID === 'undefined' || !contentID || contentID==1){
+
+		}else{
+			console.log('inpause')
+			if(player1Obj.config.playertype=='video' || player1Obj.config.playertype=='live'){
+				jw_events("pause", singleVideoPlaylist_1);
+			}else{
+				console.log("watch_time:"+singleVideoPlaylist_1.watch_time+"-plyertime:"+player1Obj.config.playTime);
+				if(player1Obj.config.playTime > singleVideoPlaylist_1.watch_time){	
+				  jw_events("pause", singleVideoPlaylist_1);
+				}
+			}
+		}	
+	}
+	
+	function jw_seeked(val, id,start,end){
+		videoStart=start;
+		videoEnd=end;
+		jw_events("drag", singleVideoPlaylist_1);
+		var category=document.getElementById("category").value;
+		if(category=='movie_dtl' || category=='tvshow_dtls' || category=='tvepisode_dtls'){
+		  continuewatching(); 
+		}
+    }
+
+    function playVideoCall(content_id){
+		var play_status='full';
+		playVideo(play_status);
+    }
+
+	function playVideo(){
+
+		$('#jw_player_notification').remove();
+		$('#autoplayNotification').remove();
+		$('#user_action').val('user_playvideo');
+		$("#loader-wrapper").hide();
+		var userId='';
+		var userName='';
+		var vname = document.getElementById("vname").value;
+		var videoid = document.getElementById("videoid").value;
+		var ad_set_arr={};
+		
+		if (hungamaGetCookie('h_profile')) {
+			profile = JSON.parse(hungamaGetCookie('h_profile'));
+			if(profile['status'] == 1){
+				if(profile != null) {
+						if(profile['userId'] != null) {
+							userId = profile['userId'];
+						}
+						if(profile['userName']!= null) {
+							userName = profile['userName'];
+						}
+						if(player1Obj){
+							player1Obj.config.userid = userId;
+							player1Obj.config.email = userName;
+						}
+					}
+			}
+		}
+		
+		var data='content_id='+videoid+'&action=video&vendor_id='+vendor_id;
+		$.ajax({
+			type: 'POST',
+			url: $('#origin_url').val()+'index.php?c=common&m=get_video_mdn_url',
+			data: data,
+			success: function (response) {
+				var video_url_arr = JSON.parse(response);
+				var videourl=video_url_arr['stream_url'];
+				var viewingTime=video_url_arr['viewtime'];
+				var type=video_url_arr['type'];
+				if(video_url_arr['add_show']==1){
+					ad_set_arr=addLogic(video_url_arr['add_show']);
+				}
+				singleVideoPlaylist_1 = {"file":videourl.trim(),"type":type, "image": "","title":vname,"mediaid":videoid, "contenttype":"videos","ad_setup":ad_set_arr};
+				if(player1Obj){
+				 player1Obj.config.playertype='video';
+				}
+				divElement = $('#video-playlist-player');
+				setTimeout(function(){
+					disp_Vdo_player(divElement, singleVideoPlaylist_1);
+					$("#vdo-player").removeClass("playmovie");
+					$("#vdo-player").addClass('playvideo');
+					$('.liveRibbon').remove();
+					autoplayflag();
+				},200);
+				window.scrollTo(0, 0);
+			}
+		});
+		userFavorite(videoid);
+	}
+	
+
+    function jw_download(id, i) {
+		var vname = document.getElementById("vname").value;
+		var videoid = document.getElementById("videoid").value;
+		setproduct_id(videoid, 'Music Videos', 'video', vname);
+		setdwnld();
+		if(id!=1){
+				jw_events("download", singleVideoPlaylist_1);
+			}
+    }
+
+    function jw_Video_favourite(playerContainer, currentSongIndex){
+        user.addToMyFavourite({content_id:playerContainer, content_type:'videos', content_title:currentSongIndex});
+		userFavorite(playerContainer);
+    }
+
+    function jw_Video_download(playerContainer, currentSongIndex){
+        user.downloadContent({content_id:playerContainer, content_type:'video', content_title:currentSongIndex});
+    }
+
+    function jw_favourite() {
+
+        var vname = document.getElementById("vname").value;
+        var videoid = document.getElementById("videoid").value;
+        setproduct_id(videoid, 'Music Videos', 'video', vname);
+        favorite();
+    }
+
+    function jw_twitter() {
+        var vname = document.getElementById("vname").value;
+        var videoid = document.getElementById("videoid").value;
+        setproduct_id(videoid, 'Music Videos', 'video', vname);
+        share('twitlink');
+    }
+
+    function jw_facebook() {
+    var vname = document.getElementById("vname").value;
+        var videoid = document.getElementById("videoid").value;
+        setproduct_id(videoid, 'Music Videos', 'video', vname);
+        share('fblink');
+    }
+	
+	
+   function jw_VideoComplete(type, contentID){  
+		console.log('jwcomp');
+		var cat = $("#category").val();
+		if(cat=="movie_dtl" || cat=="tvshow_dtls" || cat=='tvepisode_dtls' || cat=='liveshow'){
+		
+		if(typeof contentID === 'undefined' || !contentID || contentID==1){
+
+		}else{
+			movie_trailer_val = $('#movie_trailer').val();
+			if (movie_trailer_val == '1') {
+				var loggedinstatus = check_logged_in_status();
+				if (loggedinstatus != 'yes') {
+					jw_events('end',singleVideoPlaylist_1);
+					showmovieNotificationPopup(1);
+				} else {
+					jw_events('end',singleVideoPlaylist_1);
+					var viewtime = $("#viewtm").val();
+					if (viewtime == '500' && movie_trailer_val != '1' ) {
+						showmovieNotificationPopup(2);
+						jw_events('end',singleVideoPlaylist_1);
+					} else {
+						showmovieNotificationPopup(1);
+						jw_events('end',singleVideoPlaylist_1);
+					}
+				}
+			} else {
+				jw_events('end',singleVideoPlaylist_1);
+				var currentplaytime = player1Obj.getPosition();
+				currentplaytime = Math.ceil(currentplaytime);
+				var cat = $("#category").val();
+				if (currentplaytime < 60 && cat != 'liveshow') {
+					showmovieNotificationPopup();
+				}
+
+				if (currentplaytime > 1000) {
+					var content_id = $("#videoid").val();
+					user_action_point('watch_fullmovie', content_id, 'movie');
+				}
+			}
+			
+		}
+		
+		}else{
+			
+			var category=document.getElementById("category").value;		
+			if(typeof contentID === 'undefined' || !contentID || contentID==1){
+
+			}else{	
+				if(category=='video_dtl' && current_Index==0){
+				   if(videoPlaylist.length>0){
+					   var playlist=videoPlaylist;
+					   var playlist_array=JSON.parse(playlist);
+					   var mediaid = playlist_array[current_Index]['mediaid'];
+					   var title = playlist_array[current_Index]['title'];
+					   var page_url=playlist_array[current_Index]['page_url'];
+					   var isvideoautoplay = 'true';	
+					   videoautoplay = hungamaGetCookie('_hvpl');
+					   jw_events('end',singleVideoPlaylist_1);
+					   if(videoautoplay=='0'){ 
+						isvideoautoplay = 'false'; 
+						showNotificationPopup();
+					   }else{ 
+						 isvideoautoplay = 'true';
+						 pjaxLoadURL(page_url);
+					   }
+				   
+				   }else{
+					   showNotificationPopup();
+				   }
+
+				}else{
+					if(videoPlaylist.length>0){
+						var playlist=videoPlaylist;
+						var playlist_array=JSON.parse(playlist);
+						var playlist_length=playlist_array.length-1;		
+						videoposition=current_Index;
+						jw_events('end',singleVideoPlaylist_1);
+						if(current_Index==playlist_length){
+						   showNotificationPopup();
+						   show_hide_ap('show');
+						   return false;
+						}
+						current_Index=parseInt(current_Index+1);
+						var mediaid = playlist_array[current_Index]['mediaid'];
+						playvideofromplaylist(current_Index);
+						videodata(mediaid);
+						$('.watch-playlist #songsList li').css("background", "").eq(current_Index).css("background", "#333");
+					}else{
+						 showNotificationPopup();
+					}	
+				}
+		}
+		var loggedinstatus = check_logged_in_status(); 
+		if(loggedinstatus == 'yes'){
+			if(typeof contentID === 'undefined' || !contentID || contentID==1){
+
+			}else{
+				user_action_point('watch_video',contentID,'video');
+			}
+		}
+
+	}		
+
+    }
+
+    function continuewatching() {
+    if (player1Obj) {
+        var endtime = Math.floor(player1Obj.getPosition());
+        var fullvideoid = $("#videoid").val();
+        var totalduration = Math.floor(player1Obj.getDuration());
+        var viewtime = $("#viewtm").val();
+        var movie_content_type = $('#movie_content_type').val();
+        if (viewtime == '500') {
+            if (endtime == totalduration) {
+                unsetContinue({type: movie_content_type, content_id: fullvideoid});
+            } else {
+                setContinue({type: movie_content_type, start: '0', end: endtime, runtime: totalduration, content_id: fullvideoid});
+            }
+        }
+    } else {
+    }
+}
+
+function unsetContinue(params) {
+    if (params.runtime) {
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + "?c=user&m=unsetcontinue",
+            data: "content_id=" + params.content_id + "&content_type=" + params.type,
+            success: function (result) {
+            }
+        });
+    }
+}
+	
+	function setContinue(params){       
+		$.ajax({
+			type: 'POST',
+			url: $('#origin_url').val() + "?c=tvshow&m=setcontinue",
+			data: "type="+params.type+"&start="+params.start+"&end="+params.end+"&runtime="+params.runtime+"&content_id="+params.content_id,
+			success: function (result) {
+			}
+		});  
+	}  
+
+	if(isTouchDevice){
+		
+		$(document).on('click', '#player_img .icon-ic_play', function () {
+			var loggedinstatus = check_logged_in_status();
+			if (loggedinstatus == 'yes') {
+				if(player1Obj){
+					 setTimeout(function(){	
+						$('#player_img .icon-ic_play').hide();
+						$('#vdo_preloader').show();
+						player1Obj.seek(1);
+					 },500);	
+				}else{
+				}
+			}
+
+		});
+		
+	}
+	
+	$(window).on("orientationchange",function(){
+	setTimeout(function(){
+		var playerWidth = divElement.width();
+		var playerHeight = (divElement.width()/16)*9;
+		divElement.height(playerHeight);
+		$("#vdo-player").css({"height":playerHeight, "width":playerWidth});
+		player1Obj.resizePlayer(playerWidth);
+		$(window).trigger('resize');
+		$(window).scrollTop(0);
+	},300);
+});
+
+	
+function jw_mediaError(val,id){
+        if(($('#movcountnum').val()) > 2)
+        {
+            return;
+        }
+		
+		if(player1Obj.config.playertype=='live')
+		{
+			return;
+		}
+		
+
+        if (val == 'video' ||  val == 'videoplaylist' || val=='movie') {
+
+            var content_id = $("#videoid").val();
+            var vname = document.getElementById("vname").value;
+            var count = $('#movcountnum').val();
+            var ncount = parseInt(count) + 1;
+            $('#movcountnum').val(ncount);
+			var category = $("#category").val();
+			var ctype='videos';
+			if(category=='tvshow_dtls' || category=='tvepisode_dtls')
+			{
+				 val='tvshow';
+				 ctype='movies';
+				 content_id=$('#latest_epi_id').val();
+			}else if(category=='movie_dtl'){
+				 val='movie';
+				 ctype='movies';
+				 content_id=$('#videoid').val();
+				 if($('#movie_trailer').val()==1){
+					$('#jw_player_notification').remove();
+					$('#autoplayNotification').remove();
+					content_id=$('#trailer_id').val(); 
+				 }
+			}
+
+
+			var data='content_id='+content_id+'&action='+val+'&vendor_id='+vendor_id;
+			$.ajax({
+			type: 'POST',
+			url: $('#origin_url').val()+'index.php?c=common&m=get_video_fallback_url',
+			data: data,
+			success: function (response) {
+				var video_url_arr = JSON.parse(response);
+				var videourl=video_url_arr['stream_url'];
+				var viewingTime=video_url_arr['viewtime'];
+                    player1Obj.load({file: videourl,
+                            type: 'mp4',
+                            image: "",
+                            title: vname,
+                            mediaid: content_id,
+                            contenttype: ctype,
+                        });
+				    player1Obj.seek(1);		
+                }
+            });
+        }
+    }
+	
+
+
+
+function playMovie(params){
+		
+	    var loggedinstatus = check_logged_in_status();
+		var movie_trailer = params.trailer;
+		var cnt_type	= params.cnt_type;
+		var videoid		= params.id;
+		var movieright =$('#movie_rights').val();
+		var movielang =$('#movie_lang').val();
+		
+		/*if (loggedinstatus != 'yes' && movie_trailer != '1') {
+			
+			if(params.frm=='player'){
+				showLoginPopup();
+			}else{
+				 $('#user_action').val('user_playmovie');				 
+				 $("#playmovieevent").attr("onclick", "showLoginPopup()");
+				 $("#moviethumplay").attr("onclick", "showLoginPopup()");
+				 setTimeout(function(){
+				 $('#vdo_preloader').hide();
+				 $('#moviethumplay .icon-ic_play').attr("onclick", "showLoginPopup()");
+				 $('#moviethumplay .icon-ic_play').show();
+				 },500);
+			}
+			if(cnt_type=='tvshow'){
+				subbutton({id:videoid, rights: movieright, cnt_type: 'tvshow'});
+			}else if(cnt_type=='movie'){
+				movierightsbutton({id:videoid, language:movielang, rights:movieright, cnt_type: 'movie'});
+			}
+			return false;
+		}*/
+        
+		$('#jw_player_notification').remove();
+		$('#autoplayNotification').remove();
+		$('#user_action').val('user_playvideo');
+		$('#movcountnum').val(0);
+		
+		var userId = '';
+		var userName = '';
+		var vname		= $('#vname').val();
+		var useremail	= userName;
+		var userID		= userId;
+		var userplans	= params.user_plans;
+		var viewingTime   = '';
+		var movieright =$('#movie_rights').val();
+		var cnt_type	= params.cnt_type;
+			
+		if (hungamaGetCookie('h_profile')) {
+			profile = JSON.parse(hungamaGetCookie('h_profile'));
+			if(profile['status'] == 1){
+					if(profile != null) {
+						if(profile['userId'] != null) {
+							userId = profile['userId'];
+						}
+						if(profile['userName']!= null) {
+							userName = profile['userName'];
+						}
+						if(player1Obj){
+							player1Obj.config.userid = userId;
+							player1Obj.config.email = userName;
+						}
+						var plan_status = profile['user_plan']['movie_plan_status'];
+						if(plan_status==1)
+						{	
+							show_ads=0;
+						}
+				}
+			}
+		}
+		
+		$('#movie_trailer').val('0');			
+		var ad_set_arr;
+		videoplayed = false;
+
+		var data='content_id='+videoid+'&action='+cnt_type+'&cnt_type='+cnt_type+'&movie_rights='+movieright+'&lang='+movielang;
+		$.ajax({
+			type: 'POST',
+			url: $('#origin_url').val()+'index.php?c=common&m=get_video_mdn_url',
+			data: data,
+			success: function (response) {					
+				var autoplaymovie = false;
+				var video_url_arr = JSON.parse(response);
+				var videourl=video_url_arr['stream_url'];
+				var resume=params.resume;
+				var watch_time=video_url_arr['watch_time'];
+				var rent_status=video_url_arr['rent_status'];
+				var type=video_url_arr['type'];
+				var subtitle =video_url_arr['sub_title'];
+				if((rent_status==1 && video_url_arr['viewtime']==0) || movie_trailer==1){
+				$('#movie_trailer').val('1');	
+				viewingTime=500;	
+				}else{
+				viewingTime=video_url_arr['viewtime'];
+				}
+				if(cnt_type=='tvshow'){
+					  subbutton({id:videoid, rights: movieright, cnt_type: 'tvshow'});
+				}
+				  
+				if(video_url_arr['add_show']==1){
+					ad_set_arr=addLogic(video_url_arr['add_show']);
+				}
+
+				if(plan_status==1 || video_url_arr['viewtime']==0){
+					//ad_set_arr={};
+					ad_set_arr={client:'vast',
+								 tag: ''};
+				}
+				  
+				if (watch_time > 0 && movie_trailer != '1') {
+				   ad_set_arr={client:'vast',
+								 tag: ''};
+				}
+
+								
+				
+				var subt=[{"file":subtitle,"label":"English","kind":"captions"}];
+				singleVideoPlaylist_1 ={"file":videourl.trim(),"type":type, "image": "","title":vname,"mediaid":videoid, "contenttype":"movies","tracks":subt,"watch_time":watch_time,"movie_trailer":movie_trailer,"ad_setup":ad_set_arr};
+				if(player1Obj){
+				player1Obj.config.playertype='movie';
+				player1Obj.config.extraParam.viewingTime = viewingTime;}
+				divElement = $('#spotlight-banner');
+	
+				setTimeout(function(){
+					disp_Vdo_player(divElement, singleVideoPlaylist_1);
+					$("#vdo-player").removeClass("playvideo");
+					$("#vdo-player").addClass('playmovie');
+					$('.icon-ic_play').show();
+					$('.liveRibbon').remove();
+					if($(window).width()>=750){
+							$('.spotlight-banner .lrg-img, .spotlight-banner .detailsNew').hide();
+					}else{
+						$('.spotlight-banner .lrg-img').hide();	
+					} },200);
+				window.scrollTo(0, 0);
+
+			}
+		});
+	}
+	
+	function playLiveshow(params){
+		$('#jw_player_notification').remove();
+		$('#autoplayNotification').remove();
+		var loggedinstatus = check_logged_in_status();		
+		$('#movcountnum').val(0);
+		var vname		= params.title;
+		var videoid		= params.id;
+		var cnt_type	= params.cnt_type;
+		var userId = '';
+		var userName = '';
+		if (hungamaGetCookie('h_profile')) {
+			profile = JSON.parse(hungamaGetCookie('h_profile'));
+			if(profile['status'] == 1){
+					if(profile != null) {
+						if(profile['userId'] != null) {
+							userId = profile['userId'];
+						}
+						if(profile['userName']!= null) {
+							userName = profile['userName'];
+						}
+						if(player1Obj){
+							player1Obj.config.userid = userId;
+							player1Obj.config.email = userName;
+						}
+					}
+			}
+		}
+		
+		var data='content_id='+videoid+'&action=liveshow';
+		$.ajax({
+			type: 'POST',
+			url: $('#origin_url').val()+'index.php?c=common&m=get_live_show_url',
+			data: data,
+			success: function (response) {
+				var video_url_arr = JSON.parse(response);
+				var videourl=video_url_arr['stream_url'];
+				singleVideoPlaylist_1 ={"file":videourl.trim(),"type":'hls', "image": "","title":vname,"mediaid":videoid, "contenttype":"movies","watch_time":0,"movie_trailer":1};
+				
+				if(player1Obj){
+				 player1Obj.config.playertype='live';
+				}
+				divElement = $('#spotlight-banner');
+				setTimeout(function(){
+					disp_Vdo_player(divElement, singleVideoPlaylist_1);
+					$("#vdo-player").removeClass("playvideo");
+					$("#vdo-player").addClass('playmovie');
+					$('.icon-ic_play').show();
+					$(".icon-ic_forward_30_1-50").hide();
+					$(".icon-ic_replay30_1-49").hide();
+					$(".timeBar").hide();
+					$(".playerProgressbar").hide();
+					if($(window).width()>=750){
+						$('.spotlight-banner .lrg-img, .spotlight-banner .detailsNew').hide();
+					}else{
+						$('.spotlight-banner .lrg-img').hide();
+					}
+				},200);
+				
+				setTimeout(function(){player1Obj.seek(1);},3000);
+				setTimeout(function(){player1Obj.seek(1);},6000);
+				
+				window.scrollTo(0, 0);
+			}
+		});
+		
+	}
+	
+	
+function resumeMovie(seekposition){
+	$('#jw_player_notification').remove();
+	$('#autoplayNotification').remove();
+	var seekpos=parseInt(seekposition);
+	$("#vdo-player .jw-media").show();
+	$("#vdo-player #hun_vp" ).css("visibility","visible");
+	player1Obj.seek(seekpos);
+	setTimeout(function(){player1Obj.play();},500);
+	jw_events("play", singleVideoPlaylist_1);
+}
+function replayVideo(){
+	$('#jw_player_notification').remove();
+	$('#autoplayNotification').remove();
+	setTimeout(function(){player1Obj.seek(0);},300);
+	
+}
+function replayMovie() {
+	$("#vdo-player .jw-media").show();
+    $("#jw_player_notification").remove();
+	$('#autoplayNotification').remove();
+	$("#vdo-player #hun_vp").css("visibility","visible");
+	player1Obj.seek(0);
+	setTimeout(function(){player1Obj.play();},500);
+	jw_events("play", singleVideoPlaylist_1);
+}
+function showNotificationPopup(){
+		var category = $("#category").val();
+		if(category=='movie_dtl' || category=='tvshow_dtls' || category=='tvepisode_dtls')
+		{
+			showmovieNotificationPopup();
+
+		}else{	
+				
+				var playlistindex = 0;
+				var noti_html;
+				var show_pop=0;
+				if (hungamaGetCookie('h_profile')) {
+						profile = JSON.parse(hungamaGetCookie('h_profile'));
+						var user_status = profile['status'];
+						 if(user_status==1)
+						{	
+							var plan_status = profile['user_plan']['music_plan_status'];
+							if(plan_status==1){
+									viewtime=200;
+									show_pop=1;
+							}else{
+									show_pop=0;
+							}
+						}else{
+						   show_pop=0;
+						}	
+				}else{
+					show_pop=0;
+					
+				}
+				
+				if(show_pop==0){
+						var data='videoindex='+playlistindex;
+						$.ajax({
+							type: 'POST',
+							url: $('#origin_url').val()+'index.php?c=user&m=videoplayerpopup',
+							data: data,
+							success: function (response) {
+								var plan_status_arr = JSON.parse(response);
+									 noti_html =plan_status_arr.popup;
+									 player1Obj.pause(true);
+									 setTimeout(function(){
+									 $('.jw-playBtn.replysub').hide();
+									 },500);									 
+									 $("#vdo-player .videoPlayer").append(noti_html);
+									 show_hide_ap('show');
+								}
+						});
+				}else{
+					setTimeout(function(){
+						 $('.jw-playBtn.replysub').show();
+					},500);
+							
+				
+					
+				}
+			}
+	
+	}
+
+function showResumePopup(watch_time) {
+	var resumeflag=1;	
+    var noti_html;
+	player1Obj.pause(true);
+	$("#vdo-player .jw-media,#vdo-player .loadingVideo").hide();
+    noti_html = '<div id="jw_player_notification" style="display:block">' +
+            '<table width="100%" height="100%" border="0" cellspacing="0" cellpadding="0"><tbody>' +
+            '<tr><td align="center" valign="middle" style="text-align:center;">' +
+            '<table width="100%" align="center" border="0" cellspacing="0" cellpadding="0" id="subscriptionPop"><tbody>' +
+            '<tr><td class="repsub"><a href="javascript:void(0);" onclick="resumeMovie('+watch_time+')" class="replysub"><i class="icon-ic_play"></i></a></td>' +
+            '<td class="repsub"><a href="javascript:void(0);" onClick="replayMovie();" class="replysub"><i class="icon-ic_repeat_1-35"></i> </a></td></tr>' +
+            '</tbody></table></div>';
+		setTimeout(function(){
+				if(resumeflag==1){ 
+				  $("#vdo-player").append(noti_html); 
+				  $('.jw-playBtn.replysub').hide();
+				  resumeflag=0;
+				  $("#vdo-player #hun_vp").css("visibility","hidden");
+				}
+			},300);	
+		
+}
+
+	
+function showmovieNotificationPopup(trailer) {
+
+    var cnt_id = $('#videoid').val();
+    var movie_rights = $('#movie_rights').val();
+    var movie_trailer = $('#movie_trailer').val();
+    var cont_type = $('#cont_type').val();
+    var noti_html;
+
+    if (cont_type == 'tvshow') {
+        var disp_title = 'Watch the full Episode';
+        var disp_msg = 'Play Episode';
+    } else {
+        var disp_title = 'Watch the full Movie';
+        var disp_msg = 'Play Movie';
+    }
+ 
+    if (movie_trailer.indexOf("1")!= -1 && trailer == '1') {
+  
+        noti_html = '<div id="jw_player_notification" class="subscriptionNoti" style="display:block">' +
+                '<table width="100%" height="100%" border="0" cellspacing="0" cellpadding="0"><tbody>' +
+                '<tr><td align="center" valign="middle" style="text-align:center;">' +
+                '<table width="100%" align="center" border="0" cellspacing="0" cellpadding="0" id="subscriptionPop"><tbody>' +
+                '<tr><td class="watchfull">' + disp_title + '</td></tr><tr><td class="ht45"></td></tr>' +
+                '<tr><td class="brdsub"></td><td class="brdsub"></td></tr>' +
+                '<tr><td class="repsub"><a href="javascript:void(0);" onClick="playMovie({id:' + cnt_id + ',viewtime: 1,frm:\'player\',cont_type:\'' + cont_type + '\'});" class="replysub"><i class="icon-ic_play"></i></a><a href="javascript:void(0);" onClick="replayMovie();" class="replysub"><i class="icon-ic_repeat_1-35"></i></a></td></tr>' +
+                '</tbody></table></div>';
+
+        setTimeout(function(){
+		$('.jw-playBtn.replysub').hide();},500);
+        $("#vdo-player .videoPlayer").append(noti_html);
+
+    }else if(trailer == '2'){
+		setTimeout(function(){
+			 $('.jw-playBtn.replysub').show();
+		},500);
+		
+	} else if (movie_rights != "") {
+
+        var movierights = $('#movie_rights').val();
+        var lang = $('#movie_lang').val();
+        var data = 'content_id=' + cnt_id + '&movie_rights=' + movierights + '&lang=' + lang + '&cnt_type=' + cont_type;
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + 'index.php?c=user&m=playerpopup',
+            data: data,
+            success: function (response) {
+                var plan_status_arr = JSON.parse(response);
+                noti_html = plan_status_arr.popup;
+                $('.jw-playBtn.replysub').hide();
+                $("#vdo-player .videoPlayer").append(noti_html);
+            }
+        });
+
+    } else {
+        noti_html = '<div id="jw_player_notification" style="display:block">' +
+                '<table width="100%" height="100%" border="0" cellspacing="0" cellpadding="0"><tbody><tr>' +
+                '<td align="center" valign="middle" style="text-align:center;">' +
+                '<table width="100%" id="userLoginPop" align="center" border="0" cellspacing="0" cellpadding="0"><tbody>' +
+                '<tr><td class="watchfull">' + disp_title + '</td></tr><tr><td class="ht45"></td></tr>' +
+                '<tr><td><table width="100%" cellpadding="10" cellspacing="10" border="0"><tr>' +
+                '<td width="50%"> <a href="javascript:void(0);" onClick="replayMovie();" class="replysub"><i class="icon-ic_repeat_1-35"></i> Sign in</a>' +
+                '</td><td width="50%"><a href="javascript:;" class="replysub"><i class="icon-ic_repeat_1-35"></i> Sign up</a>' +
+                '</td></tr></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></table></div>';	
+        $('.jw-playBtn.replysub').hide();
+        $("#vdo-playerc .videoPlayer").append(noti_html);
+
+    }
+    show_hide_ap('show');
+}
+function userFavorite(videoid){
+		var user_fav = $('#user_fav_data').val();
+		var category = $("#category").val();
+        user_fav = user_fav.replace(/[^0-9,]/g,'');
+		var fav_array = user_fav.split(',');
+        for (k = 0; k < fav_array.length; ++k) {
+            fav_id = fav_array[k];  
+            if (fav_id > 0) {
+				if(category =='video_dtl' || category =='video_playlist_queue'){ 
+					 $(".jw_favourite .icon-ic_favourite_1-46").removeClass("actfev");
+					 if(videoid==fav_id){
+						 $(".jw_favourite .icon-ic_favourite_1-46").addClass("actfev");
+						 $("#fav_consumption_" +fav_id).removeClass('icon-ic_favourite');
+						 $("#fav_consumption_" +fav_id).addClass('icon-ic_favourite_fill');
+						 break;
+					 }
+				}
+            }else{
+				$(".jw_favourite .icon-ic_favourite_1-46").removeClass("actfev");
+			}
+        }
+	}
+
+	
+	
+
+
+ 

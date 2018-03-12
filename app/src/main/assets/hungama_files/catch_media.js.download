@@ -1,0 +1,222 @@
+var cmsdk;
+cmsdk = new CMSDK({appCode: 'HUNGAMA-WEB', partnerId: 3041, idNamespace: 'hungama', appVersion:'1.0', allowGeoLocation: false, idleTimeout:3600, enablePush: false});
+//var globPlayer;
+var cmPlayData = [];
+var cmVPlayData = [];
+
+function cm_Init() {
+	//console.log("init start");
+	if(cmsdk == null) {
+		return false;
+	}
+	var user_values = readCookie('h_profile');
+	var cmSocial = readCookie('_hlog');
+	var dec_user_values = decodeURIComponent(user_values);
+	var userId;
+	var userName;
+	var signupType = '';
+	
+	uobj = JSON.parse(dec_user_values);
+	if(uobj != null) {
+		if(uobj.userId != null) {
+			userId = uobj.userId;
+		}
+		if(uobj.userName != null) {
+			userName = uobj.userName;
+		}
+	}
+	
+	if(cmSocial != null) {
+		signupType = cmSocial;
+	}
+	
+	if(userId != null) {
+		cmsdk.register(true);
+		cmsdk.setSilentUser(userId);
+		cmsdk.setUser(userName, signupType, '', false);//set to true to merge any data
+	} else {
+		cmsdk.register();
+	}
+	//console.log(cmsdk);
+}
+
+function cm_appEvent(action, extraParam) {
+	if(cmsdk == null) {
+		return false;
+	}
+	if(action == 'page-loaded') {
+		cmsdk.reportAppEvent(action, extraParam);
+	} else if(action == 'user-favorite') {
+		if(extraParam.content_type == 'song_playlist' || extraParam.content_type == 'video_playlist' || extraParam.content_type == 'ondemandradio') {
+			extraData = {'content_id':extraParam.content_id, 'content_title':extraParam.content_title, 'content_type':extraParam.content_type, "action_performed":"added","outcome":"Success"};
+			cmsdk.reportAppEvent('user-favourite', extraData);
+		}
+	}
+	
+}
+
+function cm_mediaEvent(eventType, params) {
+	if(cmsdk == null) {
+		return false;
+	}
+	//console.log(eventType);
+	//console.log(params);
+	if(params.content_type == 'song') {
+		contentType = 'track';
+	} else if(params.content_type == 'album') {
+		contentType = 'album';
+	} else if(params.content_type == 'videos') {
+		contentType = 'video';
+	} else if(params.content_type == 'movies' || params.content_type == 'tvshow' || params.content_type == 'episode') {
+		contentType = 'film';
+	} else if(params.content_type == 'artist') {
+		contentType = 'artist';
+	}
+	if(eventType == 'user-rating') {
+		//extraData = {'content_id':params.content_id, 'title':params.content_title, 'rating':params.rating};
+		extraData = {"movie_rated":params.rating};
+		eventType = 'movie_rating_submitted';
+	}else if(eventType == 'user-watchlist') {
+		//extraData = {'content_id':params.content_id, 'title':params.content_title, 'rating':params.rating};
+		extraData = {"action_performed":"added","outcome":"Success"}
+		eventType = 'watchlist_action_performed';
+	} else if(eventType == 'user-favorite') {
+		eventType = 'user-favourite';
+		extraData = {"action_performed":"added","outcome":"Success"};
+	}
+	
+	cmsdk.reportMediaEvent(params.content_id, contentType, eventType, extraData);
+}
+
+function cm_consumptionEvent(playerInstance) {
+	console.log("consumption event:");
+	if(cmsdk == null) {
+		return false;
+	}
+	globPlayer = playerInstance;
+	//console.log(globPlayer.getPlaylist());
+	cmsdk.setupJwPlayer(globPlayer, getContentTypeMapping, cmExtraData);
+}
+
+function getContentTypeMapping(mediaId) {
+	//console.log("getContentTypeMapping");
+	globcontDetails = getCmPlaylist();
+	//console.log(mediaId);
+
+	if(globcontDetails.contenttype == 'music' || globcontDetails.contenttype == 'ondemand_radio' || globcontDetails.contenttype == 'live_radio' || globcontDetails.contenttype == 'audioplaylist') {
+		contDetails = cmPlayData[mediaId];
+	} else {
+		contDetails = cmVPlayData[mediaId];
+	}
+	if(contDetails == null) {
+		return null;
+	}
+	if(contDetails.contenttype == 'music' || contDetails.contenttype == 'ondemand_radio' || contDetails.contenttype == 'live_radio' || contDetails.contenttype == 'audioplaylist') {
+		contentType = 'track';
+	} else if(contDetails.contenttype == 'videos' || contDetails.contenttype == 'videoplaylist') {
+		contentType = 'video';
+	} else if(contDetails.contenttype == 'movies' || contDetails.contenttype == 'tvshow' || contDetails.contenttype == 'episode') {
+		contentType = 'film';
+	}
+	return contentType;
+}
+
+function cmExtraData(mediaId) {
+	var movieSubscribedCm = 'free';
+	var musicSubscribedCm = 'free'; 
+	var user_values = readCookie('h_profile');
+	var dec_user_values = decodeURIComponent(user_values);
+	uobj = JSON.parse(dec_user_values);
+
+	if(uobj != null && uobj.user_plan != null) {
+		if(uobj.user_plan.movie_plan_status == 1){
+			movieSubscribedCm = 'subscribed';
+		}
+		if(uobj.user_plan.music_plan_status == 1){
+			musicSubscribedCm = 'subscribed';
+		}
+	}
+	globcontDetails = getCmPlaylist();
+	if(globcontDetails.contenttype == 'music' || globcontDetails.contenttype == 'ondemand_radio' || globcontDetails.contenttype == 'live_radio' || globcontDetails.contenttype == 'audioplaylist') {
+		contDetails = cmPlayData[mediaId];
+	} else {
+		contDetails = cmVPlayData[mediaId];
+	}
+	if(contDetails == null) {
+		return null;
+	}
+	if(contDetails.contenttype == 'music') {
+		var extraParams = {"album_id":contDetails.album_id, "user_type":musicSubscribedCm};
+	} else if(contDetails.contenttype == 'audioplaylist') {
+		var extraParams = {"album_id":contDetails.album_id, "playlist_id":contDetails.playlist_id, "playlist_name":contDetails.playlist_name, "user_type":musicSubscribedCm};
+	} else if(contDetails.contenttype == 'ondemand_radio') {
+		var extraParams = {"on_demand_radio_name":contDetails.radio_name, "album_id":contDetails.album_id, "source":"on_demand_radio","on_demand_radio_id":contDetails.radio_id, "user_type":musicSubscribedCm};
+	} else if(contDetails.contenttype == 'live_radio') {
+		var extraParams = {"source":"live_radio","channel_name":contDetails.radio_name, "user_type":musicSubscribedCm};
+	} else if(contDetails.contenttype == 'videos') {
+		var extraParams = {'title':contDetails.title, "user_type":musicSubscribedCm};
+	} else if(contDetails.contenttype == 'videoplaylist') {
+		var extraParams = {'title':contDetails.title, 'playlist_name':contDetails.playlist_name, "user_type":musicSubscribedCm};
+	} else  if(contDetails.contenttype == 'movies') {
+		var extraParams = {"user_type":movieSubscribedCm};
+	}
+	return extraParams;
+}
+
+function getCmPlaylist() {
+	var playIdx = globPlayer.getPlaylistIndex();
+	var contDetails = globPlayer.getPlaylistItem(playIdx);
+	return contDetails;
+}
+
+function cm_downloadEvent(contentDetails) {
+	if(cmsdk == null) {
+		return false;
+	}
+	var musicSubscribedCm = 'free'; 
+	var user_values = readCookie('h_profile');
+	var dec_user_values = decodeURIComponent(user_values);
+	uobj = JSON.parse(dec_user_values);
+
+	if(uobj != null && uobj.user_plan != null) {
+		if(uobj.user_plan.music_plan_status == 1){
+			musicSubscribedCm = 'subscribed';
+		}
+	}
+	var extra = {'title':contentDetails.title, "user_type":musicSubscribedCm};
+	var deliveryId = null
+	if(contentDetails.contenttype == 'song') {
+		contenttype = 'track';
+	} else if(contentDetails.contenttype == 'video' || contentDetails.contenttype == 'videoplaylist') {
+		contenttype = 'video';
+	}
+	downloadEvent = cmsdk.createConsumptionEvent(contentDetails.contentid, contenttype, "download", extra, deliveryId);
+	downloadEvent.start(0);
+	downloadEvent.stop(0, 0, true);
+}
+
+function cm_objRestore(category) {
+	if(!globPlayer) {
+		return false;
+	}
+	//console.log("before restore");
+	//console.log("category:" +category);
+	//console.log("content Type:" +contDetails.contenttype);
+	contDetails = getCmPlaylist();
+	//console.log(contDetails);
+	if(category == 'Audio' && (contDetails.contenttype != 'music' && contDetails.contenttype != 'ondemand_radio' && contDetails.contenttype != 'live_radio' && contDetails.contenttype != 'audioplaylist')) {
+		globPlayer = audioPlayerObj;
+	}
+	//console.log("after restore");
+	//contDetails = getCmPlaylist();
+	//console.log(contDetails);
+}
+
+function cm_unset() {
+	if(cmsdk == null) {
+		return false;
+	}
+	cmsdk.unsetUser();
+	//console.log('logout called: ' +cmsdk);
+}
+

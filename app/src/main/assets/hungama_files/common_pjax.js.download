@@ -1,0 +1,1067 @@
+var isiPhoneDevices = (/iphone/i.test(navigator.userAgent.toLowerCase()));
+var firstautoplay =0;
+$(document).ready(function () {
+    /* setTimeout(function () {
+     $("img.lazy")
+     .lazyload({
+     event: "lazyload",
+     effect: "fadeIn",
+     effectspeed: 2000
+     })
+     .trigger("lazyload");
+     }, 1000); */
+    /* if ($("#category").val() == 'movie_dtl' || $("#category").val() == 'tvshow_dtls' || $("#category").val() == 'tvepisode_dtls') {
+        $.getScript("http://stat1.hungama.ind.in/assets/js/jquery.raty-fa.js", function (data, textStatus, jqxhr) {
+            console.log(data); // Data returned
+            console.log(textStatus); // Success
+            console.log(jqxhr.status); // 200
+            console.log("Load was performed.");
+            $('#target-div').raty({
+                half: true,
+                size: 24,
+                targetKeep: true,
+                target: '#number',
+                number: 10,
+                starHalf: 'icon-ic_star_half',
+                starOff: 'icon-ic_star',
+                starOn: 'icon-ic_star_fill',
+                targetFormat: '{score}',
+                targetType: 'number',
+                score: 0,
+                mouseover: function () {
+                    $('#number').keyup();
+                },
+                mouseout: function () {
+                    $('#number').keyup();
+                }
+            });
+            $(document).on('click', '.ratingmov', function () {
+                console.log('ratingmov clicked');
+                var a = $('#ratingmov').height() / 2;
+                $('#ratingmov').css('margin-top', -a);
+                var category = $("#category").val();
+                var vname = $("#vname").val();
+                if (category == 'movie_dtl') {
+                    $('#movie_title_rating_popup').html(vname);
+                }
+                if (category == 'tvshow_dtls') {
+                    $('.pop-ttl').html('Rate this show');
+                }
+                $('#ratingmov, .showBg').show();
+            });
+            $("#number").on("change paste keyup", function () {
+                a = $(this).val();
+                if (a == "") {
+                    b = '';
+                    $('#number').val('0');
+                } else if (a < 2.5) {
+                    b = 'Waste of time'
+                } else if (a > 2 && a < 4.5) {
+                    b = 'Boring'
+                } else if (a > 4 && a < 6.5) {
+                    b = 'Average'
+                } else if (a > 6 && a < 8.5) {
+                    b = 'Worth Watching'
+                } else if (a > 8) {
+                    b = 'Masterpiece!'
+                }
+                $("#target-div-hint").html(b);
+            });
+
+        });
+    }*/
+    var pajax_back = 'no';
+	var player_check=0;
+	var page_call=0;
+    $('#wrapper').on('pjax:popstate ', function (event) {
+        if (event.direction == "back" || event.direction == "forward") {
+            pajax_back = 'yes';
+        }
+        /*a = $("#filter .drop_style .options ul .mCSB_container").find('li');
+         console.log('pjax:popstate');
+         console.dir(a);*/
+    });
+
+    $('#wrapper').on('pjax:start', function () {
+		hideSmartBanner();
+		//audio.play();
+        /*a = $("#filter .drop_style .options ul .mCSB_container").html();
+         console.log('pjax:start');
+         console.log(a);*/
+        $(".overlay_wrapper").css("display", "none");
+        $(".newSearch").removeClass("open");
+		show_preloader();
+
+        /* $('#p_loading').html('<div class="loading">Loading...</div>'); */
+        //$('body').removeClass("loaded");
+        $('#menu').animate({"left": "-200vw"}, "fast");
+        $('#menu').removeClass('showMenu showMenu1');
+        $('.menu-icon a.lines-button').removeClass('active');
+        var currentpagename = $("#category").val();
+        console.log("current_page " + currentpagename+'-'+isiPhoneDevices);
+		
+			
+			
+			if (player1Obj && isTouchDevice && firstautoplay==0 && !isiPhoneDevices) {
+				  console.log('stop2');
+				   player1Obj.play(true);
+			}
+			
+			if ((currentpagename == 'movie_dtl') || (currentpagename == 'tvshow_dtls') || (currentpagename == 'tvepisode_dtls')
+		   || (currentpagename == 'video_dtl') || (currentpagename == 'video_playlist_queue') || (currentpagename == 'liveshow')) {
+				if (typeof player1Obj !== 'undefined') {
+					player_check=1;
+					console.log('stop4'+currentpagename);
+					player1Obj.stop(true);
+					player1Obj.destroyAdAndVideo();
+					$("#vdo-player").hide();
+					show_hide_ap('show');
+				}
+		   }
+			
+			
+        if ((currentpagename == 'movie_dtl') || (currentpagename == 'tvshow_dtls') || (currentpagename == 'tvepisode_dtls')) {
+            continuewatching();
+        }
+
+    });
+
+    $(document).pjax('#pajax_a', '#wrapper');
+
+	$('#wrapper').on('pjax:success', function (event) {
+		page_call = 0;
+	});
+
+    $(document).on('pjax:timeout', function (event) {
+        //abortXHR_pjax($.pjax.xhr);
+        //messageShowpopup('Oops data not found. Please try again later ...');
+
+		/**** start pjax recursive call ***********/
+		page_call++;
+		console.log('hcom page call == '+page_call);
+		abortXHR_pjax($.pjax.xhr);
+		if(page_call <= 2 ) {
+			page_url = window.location.href;
+			$.pjax({url: page_url, container:'#wrapper'});
+		}
+		if(page_call > 2) {
+			if(getRandomInt(1, 5) == 3) {
+				messageShowpopup('Oops data not found. Please try again later ...');
+			}
+			if(typeof googleAnalyticsCustomTracker !== 'undefined' && $.isFunction(googleAnalyticsCustomTracker)) {
+				googleAnalyticsCustomTracker('event','OOPS Error','Pjax Timeout',location.hostname+location.pathname);
+				console.log("This is a GA call : " + 'event - OOPS Error - Pjax Timeout - ' + location.hostname+location.pathname);
+			}
+		}
+		/**** end ***************/
+		
+        //console.log('pjax time out');
+        // Prevent default timeout redirection behavior 
+        //event.preventDefault()
+    });
+
+	function getRandomInt(min, max) {
+		return Math.floor(Math.random() * (max - min + 1) + min);
+	}
+
+    function abortXHR_pjax(xhr) {
+        if (xhr && xhr.readyState < 4) {
+            xhr.onreadystatechange = $.noop
+            xhr.abort()
+        }
+    }
+
+    function load_hungama_ads() {
+        var ad_music_plan_status = '';
+        var ad_movie_plan_status = '';
+
+        if (hungamaGetCookie('h_profile')) {
+            profile = JSON.parse(hungamaGetCookie('h_profile'));
+            if (profile['status'] == 1) {
+                ad_music_plan_status = profile['user_plan']['music_plan_status'];
+                ad_movie_plan_status = profile['user_plan']['movie_plan_status'];
+            }
+        }
+
+        if (ad_music_plan_status == 1 || ad_movie_plan_status == 1) {
+            
+        } else {
+            
+            if ($('#category').val() == 'home') {
+                if (typeof load_hcom_ads == 'function') {
+                    load_hcom_ads({page: 'home'});
+                }                
+            } else if ($('#category').val() == 'music_home') {
+                if (typeof load_hcom_ads == 'function') {
+                    load_hcom_ads({page: 'music'});
+                }                
+            } else if ($('#category').val() == 'video_home') {
+                if (typeof load_hcom_ads == 'function') {
+                    load_hcom_ads({page: 'videos'});
+                }                
+            } else if ($('#category').val() == 'movie_home') {
+                if (typeof load_hcom_ads == 'function') {
+                    load_hcom_ads({page: 'movies'});
+                }                
+            } else if ($('#category').val() == 'artist_home') {
+                if (typeof load_hcom_ads == 'function') {
+                    load_hcom_ads({page: 'artist_home'});
+                }                
+            } else if ($('#category').val() == 'tvshow_home') {
+                if (typeof load_hcom_ads == 'function') {
+                    load_hcom_ads({page: 'tvshow_home'});
+                }
+            } else if ($('#category').val() == 'kidshome') {
+                if (typeof load_hcom_ads == 'function') {
+                    load_hcom_ads({page: 'kidshome'});
+                }
+			} else if ($('#category').val() == 'more_songs') {
+				if (typeof load_hcom_ads == 'function') {
+					load_hcom_ads({page: 'song_listing'});
+					console.log(' category song listing ');
+				}				
+			} else if ($('#category').val() == 'more_playlist') {
+				if (typeof load_hcom_ads == 'function') {
+					load_hcom_ads({page: 'playlist_listing'});
+					console.log(' category playlist listing ');
+				}
+			} else if ($('#category').val() == 'album_dtl') {
+				if (typeof load_hcom_ads == 'function') {
+					load_hcom_ads({page: 'album_dtl'});
+				}
+			} else if ($('#category').val() == 'song_dtl') {
+				if (typeof load_hcom_ads == 'function') {
+					load_hcom_ads({page: 'song_dtl'});
+				}
+			} else if ($('#category').val() == 'playlist_dtl') {
+				if (typeof load_hcom_ads == 'function') {
+					load_hcom_ads({page: 'playlist_dtl'});
+				}
+			} else if ($('#category').val() == 'video_dtl') {
+				if (typeof load_hcom_ads == 'function') {
+					load_hcom_ads({page: 'video_dtl'});
+				}
+			} else if ($('#category').val() == 'video_playlist_queue') {
+				if (typeof load_hcom_ads == 'function') {
+					load_hcom_ads({page: 'video_playlist_queue'});
+				}
+			} else if ($('#category').val() == 'movie_dtl') {
+				if (typeof load_hcom_ads == 'function') {
+					load_hcom_ads({page: 'movie_dtl'});
+				}
+			} else if ($('#category').val() == 'collection_dtl') {
+				if (typeof load_hcom_ads == 'function') {
+					load_hcom_ads({page: 'collection_dtl'});
+				}
+			} else if ($('#category').val() == 'theme_dtl') {
+				if (typeof load_hcom_ads == 'function') {
+					load_hcom_ads({page: 'theme_dtl'});
+				}
+			} else if ($('#category').val() == 'tvshow_dtls') {
+				if (typeof load_hcom_ads == 'function') {
+					load_hcom_ads({page: 'tvshow_dtls'});
+				}
+			} else if ($('#category').val() == 'tvepisode_dtls') {
+				if (typeof load_hcom_ads == 'function') {
+					load_hcom_ads({page: 'tvepisode_dtls'});
+				}
+			} else if ($('#category').val() == 'artist_dtl') {
+				if (typeof load_hcom_ads == 'function') {
+					load_hcom_ads({page: 'artist_dtl'});
+				}
+			} else if ($('#category').val() == 'radio_dtl') {
+				if (typeof load_hcom_ads == 'function') {
+					load_hcom_ads({page: 'radio_dtl'});
+				}
+			} else if ($('#category').val() == 'liveradio_dtl') {
+				if (typeof load_hcom_ads == 'function') {
+					load_hcom_ads({page: 'liveradio_dtl'});
+				}	
+            }
+        }
+    }
+
+    $('#wrapper').on('pjax:end', function (event) {
+        /*a = $("#filter .drop_style .options ul .mCSB_container").find('li');
+         console.log('pjax:end');
+         console.dir(a);*/
+		$("body").removeClass("fixed");
+        $(".newSearch").show();
+        /*if ($("#category").val() == 'movie_dtl' || $("#category").val() == 'tvshow_dtls' || $("#category").val() == 'tvepisode_dtls') {
+            $.getScript("http://stat1.hungama.ind.in/assets/js/jquery.raty-fa.js", function (data, textStatus, jqxhr) {
+                console.log(data); // Data returned
+                console.log(textStatus); // Success
+                console.log(jqxhr.status); // 200
+                console.log("Load was performed.");
+                $('#target-div').raty({
+                    half: true,
+                    size: 24,
+                    targetKeep: true,
+                    target: '#number',
+                    number: 10,
+                    starHalf: 'icon-ic_star_half',
+                    starOff: 'icon-ic_star',
+                    starOn: 'icon-ic_star_fill',
+                    targetFormat: '{score}',
+                    targetType: 'number',
+                    score: 0,
+                    mouseover: function () {
+                        $('#number').keyup();
+                    },
+                    mouseout: function () {
+                        $('#number').keyup();
+                    }
+                });
+                $(document).on('click', '.ratingmov', function () {
+                    console.log('ratingmov clicked');
+                    var a = $('#ratingmov').height() / 2;
+                    $('#ratingmov').css('margin-top', -a);
+                    var category = $("#category").val();
+                    var vname = $("#vname").val();
+                    if (category == 'movie_dtl') {
+                        $('#movie_title_rating_popup').html(vname);
+                    }
+                    if (category == 'tvshow_dtls') {
+                        $('.pop-ttl').html('Rate this show');
+                    }
+                    $('#ratingmov, .showBg').show();
+                });
+                $("#number").on("change paste keyup", function () {
+                    a = $(this).val();
+                    if (a == "") {
+                        b = '';
+                        $('#number').val('0');
+                    } else if (a < 2.5) {
+                        b = 'Waste of time'
+                    } else if (a > 2 && a < 4.5) {
+                        b = 'Boring'
+                    } else if (a > 4 && a < 6.5) {
+                        b = 'Average'
+                    } else if (a > 6 && a < 8.5) {
+                        b = 'Worth Watching'
+                    } else if (a > 8) {
+                        b = 'Masterpiece!'
+                    }
+                    $("#target-div-hint").html(b);
+                });
+
+            });
+        }*/
+
+
+        if (pajax_back == 'no') {
+            /*a = $("#filter .drop_style .options ul .mCSB_container").html();
+             console.log('pjax:pajax_back no');
+             console.log(a);*/
+
+            /* setTimeout(function () {
+             $("img.lazy")
+             .lazyload({
+             event: "lazyload",
+             effect: "fadeIn",
+             effectspeed: 2000
+             })
+             .trigger("lazyload");
+             }, 1000); */
+            
+			var currentpagename = $("#category").val();
+			
+			if ((currentpagename == 'movie_dtl') || (currentpagename == 'tvshow_dtls') || (currentpagename == 'tvepisode_dtls')
+		   || (currentpagename == 'video_dtl') || (currentpagename == 'video_playlist_queue') ||(currentpagename == 'liveshow')) {
+			   
+				if (typeof player1Obj !== 'undefined' && isTouchDevice && firstautoplay==0 && !isiPhoneDevices) {
+					console.log('stop3'+currentpagename);
+					firstautoplay=1;
+					player1Obj.pause(true);
+					$("#vdo-player").hide();
+					show_hide_ap('show');
+				}
+		   }
+				
+				
+			if ((currentpagename != 'movie_dtl') || (currentpagename != 'tvshow_dtls') || (currentpagename != 'tvepisode_dtls')
+		   || (currentpagename != 'video_dtl') || (currentpagename != 'video_playlist_queue') || (currentpagename != 'liveshow')) {
+			   console.log('stop3'+currentpagename);
+			   if (typeof player1Obj !== 'undefined') {
+					player1Obj.stop(true);
+					player1Obj.destroyAdAndVideo();
+					player1Obj.videoPlayerObj.removeAttribute("src");
+					$("#vdo-player").hide();
+			   }
+		   }
+		   
+		   if ((currentpagename != 'movie_dtl') && (currentpagename != 'tvshow_dtls') && (currentpagename != 'tvepisode_dtls')
+		   && (currentpagename != 'video_dtl') && (currentpagename != 'video_playlist_queue') && (currentpagename != 'liveshow')) {
+			   if(player1Obj){
+			   var player_state=player1Obj.getState();
+			   }else{
+				var player_state='';   
+			   }
+				console.log('stop7'+currentpagename);
+				if(player_check==1 && typeof player1Obj !== 'undefined' && player_state=='PLAYING'){
+					 jw_events("notFinishedContent", singleVideoPlaylist_1);
+				}
+		   }
+		   
+		   
+			console.log('pajax_end 1');
+			setTimeout(function(){getFBComments()},500);
+
+            $("#filter .drop_style .options ul").mCustomScrollbar();
+            $('#movie_banner').html('');
+            $('#tvshow_banner').html('');
+            $('#video-player').html('');
+            $('#p_loading').html('');
+            $('body').addClass("loaded");
+            $('.morecoll-carousal').owlCarousel(morecoll_carousal);
+            //$('.movcoll-carousal').owlCarousel(movcoll_carousal);
+            //$('.themes-carousal').owlCarousel(themes_carousal);
+            ga_pathname = $(location).attr('pathname');
+            commonTracker(ga_pathname, 'ga_track_page');
+            //$('#spotlight').owlCarousel(spotlight_options);
+
+            //$('.liveradio-carousal').owlCarousel(liveradio_options);
+            //$('.album-carousal').owlCarousel(albumcarousel_options);
+            //$('.blockmov-carousal').owlCarousel(movie_block_options);
+            //$('.musicvdo-carousal').owlCarousel(video_home_options);
+            //$('.art-carousal').owlCarousel(home_options);
+            //$('.trailer-carousal').owlCarousel(movie_trailer_carousal);
+            //$('.tvhpick-carousal').owlCarousel(tvhpickcarousal_options);
+            //$('.tvepis-carousal').owlCarousel(tvepiscarousal_options);
+            //$('.tlseries').owlCarousel(tlseries_options);
+            //$('.cwl').owlCarousel('destroy');
+            //$('.cwl').owlCarousel(cwl_carousal);
+
+            //$('.mg-carousal').owlCarousel(mg_carousal);
+            //$('.vdoPlaylist-carousal').owlCarousel(videoplaylist_carousal);
+            $('.ranking-container .ranking-list').mCustomScrollbar(); //for scrolling in rawards page
+            $('.tvepipop-carousal').owlCarousel(TVepisodePopular);
+            $("#downarrow").on('click', function () {
+                $("#downarrow").toggleClass('rotate').siblings('.colcont').slideToggle();
+            });
+            $(".cwtvs #arrow").on('click', function () {
+                $(".cwtvs #arrow").toggleClass('rotate');
+                $(".cwtvs #arrow").siblings('.cwl').slideToggle().parent().siblings('.tvs-cont').toggleClass('mt30');
+            });
+            $(".cwtvs .icon-ic_cancel").on('click', function () {
+                $(".cwtvs .icon-ic_cancel").hide();
+                $('.cwl').hide();
+            });
+            $(".sb a").on('click', function () {
+                $(".sb a").addClass('sel').parent().parent().siblings().find('.sb a').removeClass('sel');
+            });
+            $('.drop_style .options').click(function () {
+                $(this).hide();
+                $(this).siblings('.selected').children('i').toggleClass('icon-ic_dropup');
+            });
+            $('.lf-container-img').addClass('visible-content');
+            $('.rt-container-img').addClass('watch-visible');
+            $('.lf-container-smart').addClass('visible-content');
+            $('.rt-container-smart').addClass('tvtext-visible');
+            $('.desktop-container').addClass('desktop-visible');
+            $('.lf-container').addClass('visible-content');
+            $('.rt-container').addClass('phone-visible');
+//      $('#owl-demo-app').owlCarousel(app_carousal_option);
+            $('.offers-box.plans').removeClass('active');
+            $('.offers-box.offr').removeClass('active');
+            //$('body').removeClass('plans');
+            // threeDotsAjax();
+            if ($("#page").val() == 'artist_details') {
+                $('html, body').animate({scrollTop: $('#artist_tab').offset().top}, 'fast');
+            }
+
+            if ($("#page").val() == 'plans') {
+                $('body').addClass('plans');
+            } else {
+                $('body').removeClass('plans');
+            }
+
+            if ($("#category").val() == 'movie_dtl') {
+                //$("#movie_banner").css("display", "block");
+                $("#video-player").css("display", "none");
+                $("#tvshow_banner").css("display", "none");
+                //$('#movie_banner').html($('#movie_banner_src').html());
+                $('body').addClass('video-player-shortfilm');
+                /* $('body').addClass('kids'); */
+            } else {
+                $('#movie_banner').html('');
+                $('body').removeClass('video-player-shortfilm');
+                $('body').removeClass('tvshow_player');
+                $('body').removeClass('kids');
+            }
+
+            if ($("#category").val() == 'tvshow_dtls' || $("#category").val() == 'tvepisode_dtls') {
+                $("body").addClass("video-player-tvshow");
+                $('#tvshow_banner').addClass('tvshows-banner');
+                $('#tvshow_banner').html($('#tvshow_banner_src').html());
+                $("#tvshow_banner").css("display", "block");
+                $("#video-player").css("display", "none");
+                $("#movie_banner").css("display", "none");
+                $("body").removeClass("kids-home");
+            } else if ($("#category").val() == 'kidshome') {
+                $('#tvshow_banner').html('');
+                $("body").addClass("kids-home");
+            } else if ($("#category").val() == 'kidstvshowdtl') {
+                $("body").addClass("kids-shows");
+                $('#tvshow_banner').addClass('tvshows-banner');
+                $('#tvshow_banner').html($('#tvshow_banner_src').html());
+                $("#tvshow_banner").css("display", "block");
+                $("#video-player").css("display", "none");
+                $("#movie_banner").css("display", "none");
+                $("body").removeClass("kids-home");
+            } else if ($("#category").val() == 'liveshow_details') {
+                $("body").addClass("live-show-details");
+                $('#tvshow_banner').addClass('tvshows-banner');
+                $('#tvshow_banner').html($('#tvshow_banner_src').html());
+                $("#tvshow_banner").css("display", "block");
+                $("#video-player").css("display", "none");
+                $("#movie_banner").css("display", "none");
+            } else {
+                $('#tvshow_banner').html('');
+                $('body').removeClass('video-player-tvshow');
+                $('body').removeClass('live-show-details');
+                $('body').removeClass('kids-shows');
+                $('body').removeClass('tvshow_player');
+                $('#tvshow_banner').removeClass('tvshows-banner');
+                $("body").removeClass("kids-home");
+            }
+
+            if ($("#category").val() == 'video_dtl') {
+                $("body").addClass("video-player-single");
+                $("body").removeClass("video-player-playlist");
+                $('#video-player').html($('#video_banner_src').html());
+                $("#video-player").css("display", "block");
+                $("#tvshow_banner").css("display", "none");
+                $("#movie_banner").css("display", "none");
+            } else if ($("#category").val() == 'video_playlist_queue') {
+                $("body").addClass("video-player-playlist");
+                $("#video-player").html($("#videoplaylistqueue").html());
+                //$(".watch-playlist ul#songsList").mCustomScrollbar("destroy");
+                //$(".watch-playlist ul#songsList").mCustomScrollbar(); //scrolling in video player queue
+            } else {
+                $('#video-player').html('');
+                $('body').removeClass('video-player-single');
+                $("body").removeClass("video-player-playlist");
+                $('body').removeClass('tvshow_player');
+                $('body').removeClass('live-show-details');
+            }
+
+            $('.ratingmov').click(function () {
+//        var category = $("#category").val();
+//        console.log("Category==2=" + category); 
+//        if(category.trim() == 'tvshow_dtls'){
+//            console.log('inside tvshow dtls');
+//            $('.pop-ttl').html('Rate this show');    
+//            $('#ratingmov, .showBg').show();
+//        }else if(category.trim() == 'movie_dtl'){
+//            cosole.log('inside movie dtl ');
+//            $('.pop-ttl').html('Rate this movie');  
+//            $('#ratingmov, .showBg').show();
+//        }        
+                $('#ratingmov, .showBg').show();
+
+            });
+            $('.dwnld-movie').click(function () {
+                var a = $('#dwnld-movie').height() / 2;
+                $('#dwnld-movie').css('margin-top', -a);
+                $('#dwnld-movie, .showBg').show();
+            });
+
+
+            /*if ($("#category").val() == 'login_landing' || $("#category").val() == 'signup_landing' || $("#category").val() == 'apps') {
+             $('body').addClass('premium');
+             } else {
+             $('body').removeClass('premium');
+             } */
+// Not required to check User loggedin Status : 05-04-2017
+//      if (hungamaGetCookie('h_profile')) {
+//
+//      } else {
+//        checkLoggedInStatus();
+//      }
+
+            movieFlip();
+            loginTextShowHide();
+            lhsMenuActive();
+            js_scripts();
+
+            /*$(document).on('click', ".three-dots", function () {
+             $('.playlist-action').toggle();
+             $(this).focus();
+             });
+             $('.three-dots').focusout(function () {
+             $('.playlist-action').hide();
+             });*/
+
+            load_hungama_ads();
+
+
+        } else {
+            //load_hungama_ads();
+            //console.log('pjax back');
+            $("#filter .drop_style").each(function () {
+                me = $(this);
+                me.find(".options ul").mCustomScrollbar('destroy');
+                a = me.find(".options ul .mCSB_container").find('li');
+                //console.dir(a);
+                me.find(".options ul").html('');
+                me.find(".options ul").attr('class', '');
+                a.each(function () {
+                    me.find(".options ul").append($(this));
+                });
+            });
+            $('#p_loading').html('');
+            $('body').addClass("loaded");
+            $('body').removeClass('applefixed');
+            jsh_scripts();
+			setTimeout(function(){getFBComments()},500);
+			
+            $("#filter .drop_style .options ul").mCustomScrollbar();
+            if ($("#category").val() == 'movie_dtl') {
+                //$("#movie_banner").css("display", "block");
+                $("#video-player").css("display", "none");
+                $("#tvshow_banner").css("display", "none");
+                //$('#movie_banner').html($('#movie_banner_src').html());
+                $('body').addClass('video-player-shortfilm');
+                /* $('body').addClass('kids'); */
+            } else {
+                $('#movie_banner').html('');
+                $('body').removeClass('video-player-shortfilm');
+                $('body').removeClass('tvshow_player');
+                $('body').removeClass('kids');
+                $('.pop-close a').trigger('click');
+            }
+
+            if ($("#category").val() == 'tvshow_dtls' || $("#category").val() == 'tvepisode_dtls') {
+                $("body").addClass("video-player-tvshow");
+                $('#tvshow_banner').addClass('tvshows-banner');
+                $('#tvshow_banner').html($('#tvshow_banner_src').html());
+                $("#tvshow_banner").css("display", "block");
+                $("#video-player").css("display", "none");
+                $("#movie_banner").css("display", "none");
+                $("body").removeClass("kids-home");
+            } else if ($("#category").val() == 'kidshome') {
+                $('#tvshow_banner').html('');
+                $("body").addClass("kids-home");
+            } else if ($("#category").val() == 'kidstvshowdtl') {
+                $("body").addClass("kids-shows");
+                $('#tvshow_banner').addClass('tvshows-banner');
+                $('#tvshow_banner').html($('#tvshow_banner_src').html());
+                $("#tvshow_banner").css("display", "block");
+                $("#video-player").css("display", "none");
+                $("#movie_banner").css("display", "none");
+                $("body").removeClass("kids-home");
+            } else if ($("#category").val() == 'liveshow_details') {
+                $("body").addClass("live-show-details");
+                $('#tvshow_banner').addClass('tvshows-banner');
+                $('#tvshow_banner').html($('#tvshow_banner_src').html());
+                $("#tvshow_banner").css("display", "block");
+                $("#video-player").css("display", "none");
+                $("#movie_banner").css("display", "none");
+            } else {
+                $('#tvshow_banner').html('');
+                $('body').removeClass('video-player-tvshow');
+                $('body').removeClass('live-show-details');
+                $('body').removeClass('kids-shows');
+                $('body').removeClass('tvshow_player');
+                $('#tvshow_banner').removeClass('tvshows-banner');
+                $("body").removeClass("kids-home");
+            }
+
+            if ($("#category").val() == 'video_dtl') {
+                $("body").addClass("video-player-single");
+                $("body").removeClass("video-player-playlist");
+                $('#video-player').html($('#video_banner_src').html());
+                $("#video-player").css("display", "block");
+                $("#tvshow_banner").css("display", "none");
+                $("#movie_banner").css("display", "none");
+            } else if ($("#category").val() == 'video_playlist_queue') {
+                $("body").addClass("video-player-playlist");
+                $("#video-player").html($("#videoplaylistqueue").html());
+                //$(".watch-playlist ul#songsList").mCustomScrollbar("destroy");
+                //$(".watch-playlist ul#songsList").mCustomScrollbar(); //scrolling in video player queue
+            } else {
+                $('#video-player').html('');
+                $('body').removeClass('video-player-single');
+                $("body").removeClass("video-player-playlist");
+                $('body').removeClass('tvshow_player');
+                $('body').removeClass('live-show-details');
+            }
+
+            $('.ratingmov').click(function () {
+//        var category = $("#category").val();
+//        console.log("Category==1=" + category); 
+//        if(category == 'tvshow_dtls'){
+//            $('.pop-ttl').html('Rate this show');    
+//        }        
+                $('#ratingmov, .showBg').show();
+            });
+            $('.dwnld-movie').click(function () {
+                var a = $('#dwnld-movie').height() / 2;
+                $('#dwnld-movie').css('margin-top', -a);
+                $('#dwnld-movie, .showBg').show();
+            });
+			
+            load_hungama_ads();
+            var str = window.location.href;
+            if (str.indexOf("/search-") >= 0) { 
+                var recent_keyword = $("#search_keyword").val();                
+                var type = 'all';
+                var subtype = ''; 
+                var tabid = 'tab1';                
+                if(window.location.href.indexOf("/search-playlist") > -1) {
+                    type= 'tvshow'; 
+                    tabid = 'tab9';
+                }else if(window.location.href.indexOf("/search-playlist") > -1) {
+                    type= 'videos';                     
+                    tabid = 'tab8';
+                }else if(window.location.href.indexOf("/search-playlist") > -1) {
+                    type= 'music'; 
+                    subtype = 'radio';
+                    tabid = 'tab7';
+                }else if(window.location.href.indexOf("/search-playlist") > -1) {
+                    type= 'music'; 
+                    subtype = 'playlist';
+                    tabid = 'tab6';
+                }else if(window.location.href.indexOf("/search-albums/") > -1) {
+                    type= 'music'; 
+                    subtype = 'audio_album';
+                    tabid = 'tab5';
+                }else if(window.location.href.indexOf("/search-tracks/") > -1) {
+                    type= 'music'; 
+                    subtype = 'audio_track';
+                    tabid = 'tab4';
+                }else if(window.location.href.indexOf("/search-movie") > -1) {
+                    type= 'movies'; 
+                    tabid = 'tab3';
+                }else if(window.location.href.indexOf("/search-artist") > -1) {
+                    type= 'artist'; 
+                    tabid = 'tab2';
+                }
+                var recent_len =recent_keyword.length;
+                if(recent_len > 1 ) {
+                    recentSearch(recent_keyword,type,subtype,tabid);
+                }
+            }
+
+        }
+        pajax_back = 'no';
+        var category = $("#category").val();
+        if (category != '') {
+            getUserConsumption(category);
+        }
+        //loadSmartBanner();
+		hide_preloader();
+    });
+		
+    load_hungama_ads();
+
+    if ($("#category").val() == 'movie_dtl') {
+        //$("#movie_banner").css("display", "block");
+        $("#video-player").css("display", "none");
+        $("#tvshow_banner").css("display", "none");
+        //$('#movie_banner').html($('#movie_banner_src').html());
+        $('body').addClass('video-player-shortfilm');
+    } else {
+        $('#movie_banner').html('');
+        $('body').removeClass('video-player-shortfilm');
+        $('body').removeClass('live-show-details');
+    }
+
+    if ($("#category").val() == 'tvshow_dtls' || $("#category").val() == 'tvepisode_dtls') {
+        $("body").addClass("video-player-tvshow");
+        $('#tvshow_banner').addClass('tvshows-banner');
+        $('#tvshow_banner').html($('#tvshow_banner_src').html());
+        $("#tvshow_banner").css("display", "block");
+        $("#video-player").css("display", "none");
+        $("#movie_banner").css("display", "none");
+        $("body").removeClass("kids-home");
+    } else if ($("#category").val() == 'kidshome') {
+        $("body").addClass("kids-home");
+        $('#tvshow_banner').html('');
+    } else if ($("#category").val() == 'kidstvshowdtl') {
+        $("body").addClass("kids-shows");
+        $('#tvshow_banner').addClass('tvshows-banner');
+        $('#tvshow_banner').html($('#tvshow_banner_src').html());
+        $("#tvshow_banner").css("display", "block");
+        $("#video-player").css("display", "none");
+        $("#movie_banner").css("display", "none");
+    } else if ($("#category").val() == 'liveshow_details') {
+        $("body").addClass("live-show-details");
+        $('#tvshow_banner').addClass('tvshows-banner');
+        $('#tvshow_banner').html($('#tvshow_banner_src').html());
+        $("#tvshow_banner").css("display", "block");
+        $("#video-player").css("display", "none");
+        $("#movie_banner").css("display", "none");
+    } else {
+        $("body").removeClass("kids-home");
+        $("body").removeClass("live-show-details");
+        $('body').removeClass('video-player-tvshow');
+        $('#tvshow_banner').removeClass('tvshows-banner');
+        $('body').removeClass('tvshow_player');
+        $('#tvshow_banner').html('');
+    }
+
+    if ($("#category").val() == 'video_dtl') {
+        $("body").addClass("video-player-single");
+        $("body").removeClass("video-player-playlist");
+        $('#video-player').html($('#video_banner_src').html());
+        $("#video-player").css("display", "block");
+        $("#tvshow_banner").css("display", "none");
+        $("#movie_banner").css("display", "none");
+    } else if ($("#category").val() == 'video_playlist_queue') {
+        $("body").addClass("video-player-playlist");
+        $("#video-player").html($("#videoplaylistqueue").html());
+        //$(".watch-playlist ul#songsList").mCustomScrollbar("destroy");
+        //$(".watch-playlist ul#songsList").mCustomScrollbar(); //scrolling in video player queue
+    } else {
+        $('#video-player').html('');
+        $('body').removeClass('video-player-single');
+        $("body").removeClass("video-player-playlist");
+        $('body').removeClass('tvshow_player');
+    }
+
+
+    /* if ($("#category").val() == 'login_landing' || $("#category").val() == 'signup_landing' || $("#category").val() == 'apps') {
+     $('body').addClass('premium');
+     } else {
+     $('body').removeClass('premium');
+     } */
+//removed Social Share through Gigya : 05-04-2017
+//    advancedShare(); 
+    /*setTimeout(function() {
+     checkLoggedInStatus();
+     }, 5000); */
+
+    loginTextShowHide();
+//  Not required to check User loggedin Status : 05-04-2017
+//    checkLoggedInStatus();
+
+    /* if (hungamaGetCookie('h_profile')) {
+     cookie_details = JSON.parse(hungamaGetCookie('h_profile'));
+     if(cookie_details['status'] == 1){
+     
+     
+     $('#user_fav_data').val(response.fav_data);
+     $('#user_watchlist_data').val(response.watchlist_data);
+     $('#user_artist_followed_data').val(response.artist_followed_data);
+     $('#user_notify_me').val(response.user_notifyme);
+     
+     var index, content_id;
+     var a = response.watchlist_data;
+     for (index = 0; index < a.length; ++index) {
+     content_id = a[index];
+     if($("#movie_id_"+content_id).length) {
+     $("#movie_id_"+content_id).removeClass('icon-watchlist_add-72');
+     $("#movie_id_"+content_id).addClass('icon-watchlist-73');
+     }
+     }
+     
+     var j, artist_id;
+     var b = response.artist_followed_data;
+     for (j = 0; j < b.length; ++j) {
+     artist_id = b[j];
+     if($("#artist_id_"+artist_id).length) {
+     console.log("artist_id_"+artist_id+'   --- element exists');
+     $("#artist_id_"+artist_id).removeClass('icon-fallow-95');
+     $("#artist_id_"+artist_id).addClass('icon-following-96');
+     }
+     }
+     
+     notifyme_data = $('#user_notify_me').val();
+     arrNotifyData = notifyme_data.split(',');
+     for (i = 0; i < arrNotifyData.length; ++i) {
+     if($("#notifyme_"+arrNotifyData[i]).length) {
+     $("#notifyme_"+arrNotifyData[i]).hide();
+     $("#un_notifyme_"+arrNotifyData[i]).show();
+     }
+     }
+     loginTextShowHide();
+     
+     
+     }
+     } else {
+     checkLoggedInStatus();
+     } */
+
+    lhsMenuActive();
+    /*if($("#page").val()== 'my_favourites'){
+     user_fav('song');
+     }*/
+    if ($("#page").val() == 'my_playlist') {
+        user_playlist();
+    }
+    if ($("#page").val() == 'my_followed_artist') {
+        user_followed_artist();
+    }
+    if ($("#page").val() == 'my_watchlist') {
+        //user_watchlist();
+    }
+    /*if($("#page").val()== 'my_continue_watching'){
+     user_continue_watching();
+     }*/
+    //loadSmartBanner();
+});
+
+
+/* ********* FOR BROWSER NOTIFICATION START ****************/
+function showMyNotificationPopup() {
+    $("#notify").show();
+    return false;
+}
+function hideMyNotificationPopup() {
+    $("#notify").hide();
+    return false;
+}
+function notifsubmit() {
+    $("#notify").hide();
+    var left = Number((screen.width / 2) - (700 / 2));
+    var top = Number((screen.height / 2) - (500 / 2));
+    var windowFeatures = 'channelmode=0,directories=0,fullscreen=0,location=0,menubar=0,resizable=0,scrollbars=0,status=0,width=700,height=500,top=' + top + ',left=' + left;
+    var wnd = window.open('https://affiliate-api.hungama.com/hv1/notification/', 'Hungama notification', windowFeatures);
+    setTimeout(function () {
+        wnd.close();
+    }, 60000);
+    return false;
+}
+/* ********* FOR BROWSER NOTIFICATION END ****************/
+
+
+function common_ajax() {
+    /* setTimeout(function () {
+     $("img.lazy")
+     .lazyload({
+     event: "lazyload",
+     effect: "fadeIn",
+     effectspeed: 2000
+     })
+     .trigger("lazyload");
+     }, 1000); */
+
+    $('#movie_banner').html('');
+    $('#tvshow_banner').html('');
+    $('#video-player').html('');
+    $('.morecoll-carousal').owlCarousel(morecoll_carousal);
+    //$('#spotlight').owlCarousel(spotlight_options);
+    //$('.tlseries').owlCarousel(tlseries_options);
+    $('.ranking-container .ranking-list').mCustomScrollbar(); //for scrolling in rawards page
+    $('.tvepipop-carousal').owlCarousel(TVepisodePopular);
+    $("#downarrow").on('click', function () {
+        $("#downarrow").toggleClass('rotate').siblings('.colcont').slideToggle();
+    });
+    $(".cwtvs #arrow").on('click', function () {
+        $(".cwtvs #arrow").toggleClass('rotate');
+        $(".cwtvs #arrow").siblings('.cwl').slideToggle().parent().siblings('.tvs-cont').toggleClass('mt30');
+    });
+    $(".cwtvs .icon-ic_cancel").on('click', function () {
+        $(".cwtvs .icon-ic_cancel").hide();
+        $('.cwl').hide();
+    });
+    $(".sb a").on('click', function () {
+        $(".sb a").addClass('sel').parent().parent().siblings().find('.sb a').removeClass('sel');
+    });
+    $('.drop_style .options').click(function () {
+        $(this).hide();
+        $(this).siblings('.selected').children('i').toggleClass('icon-ic_dropup');
+    });
+    $('.lf-container-img').addClass('visible-content');
+    $('.rt-container-img').addClass('watch-visible');
+    $('.lf-container-smart').addClass('visible-content');
+    $('.rt-container-smart').addClass('tvtext-visible');
+    $('.desktop-container').addClass('desktop-visible');
+    $('.lf-container').addClass('visible-content');
+    $('.rt-container').addClass('phone-visible');
+    $('#owl-demo-app').owlCarousel(app_carousal_option);
+    // threeDotsAjax();
+    if ($("#page").val() == 'artist_details') {
+        $('html, body').animate({scrollTop: $('#artist_tab').offset().top}, 'fast');
+    }
+
+    if ($("#category").val() == 'movie_dtl') {
+        //$("#movie_banner").css("display", "block");
+        $("#video-player").css("display", "none");
+        $("#tvshow_banner").css("display", "none");
+        //$('#movie_banner').html($('#movie_banner_src').html());
+        $('body').addClass('video-player-shortfilm');
+        /* $('body').addClass('kids'); */
+    } else {
+        $('#movie_banner').html('');
+        $('body').removeClass('video-player-shortfilm');
+        $('body').removeClass('tvshow_player');
+        $('body').removeClass('kids');
+    }
+
+    if ($("#category").val() == 'tvshow_dtls' || $("#category").val() == 'tvepisode_dtls') {
+        $("body").addClass("video-player-tvshow");
+        $('#tvshow_banner').addClass('tvshows-banner');
+        $('#tvshow_banner').html($('#tvshow_banner_src').html());
+        $("#tvshow_banner").css("display", "block");
+        $("#video-player").css("display", "none");
+        $("#movie_banner").css("display", "none");
+        $("body").removeClass("kids-home");
+    } else if ($("#category").val() == 'kidshome') {
+        $("body").addClass("kids-home");
+    } else if ($("#category").val() == 'kidstvshowdtl') {
+        $("body").addClass("kids-shows");
+        $('#tvshow_banner').addClass('tvshows-banner');
+        $('#tvshow_banner').html($('#tvshow_banner_src').html());
+        $("#tvshow_banner").css("display", "block");
+        $("#video-player").css("display", "none");
+        $("#movie_banner").css("display", "none");
+        $("body").removeClass("kids-home");
+    } else if ($("#category").val() == 'liveshow_details') {
+        $("body").addClass("live-show-details");
+        $('#tvshow_banner').addClass('tvshows-banner');
+        $('#tvshow_banner').html($('#tvshow_banner_src').html());
+        $("#tvshow_banner").css("display", "block");
+        $("#video-player").css("display", "none");
+        $("#movie_banner").css("display", "none");
+    } else {
+        $('body').removeClass('video-player-tvshow');
+        $('body').removeClass('live-show-details');
+        $('body').removeClass('kids-shows');
+        $('body').removeClass('tvshow_player');
+        $('#tvshow_banner').removeClass('tvshows-banner');
+        $('#tvshow_banner').html('');
+        $("body").removeClass("kids-home");
+    }
+
+    if ($("#category").val() == 'video_dtl') {
+        $("body").addClass("video-player-single");
+        $("body").removeClass("video-player-playlist");
+        $('#video-player').html($('#video_banner_src').html());
+        $("#video-player").css("display", "block");
+        $("#tvshow_banner").css("display", "none");
+        $("#movie_banner").css("display", "none");
+    } else if ($("#category").val() == 'video_playlist_queue') {
+        $("body").addClass("video-player-playlist");
+        $("#video-player").html($("#videoplaylistqueue").html());
+        $(".watch-playlist ul#songsList").mCustomScrollbar("destroy");
+        $(".watch-playlist ul#songsList").mCustomScrollbar(); //scrolling in video player queue 
+    } else {
+        $('#video-player').html('');
+        $('body').removeClass('video-player-single');
+        $("body").removeClass("video-player-playlist");
+        $('body').removeClass('tvshow_player');
+        $('body').removeClass('live-show-details');
+    }
+
+    $('.ratingmov').click(function () {
+//    var category = $("#category").val();
+//    console.log("Category==" + category); 
+//    if(category == 'tvshow_dtls'){
+//        $('.pop-ttl').html('Rate this show');    
+//    }  
+        $('#ratingmov, .showBg').show();
+    });
+
+    $('.dwnld-movie').click(function () {
+        var a = $('#dwnld-movie').height() / 2;
+        $('#dwnld-movie').css('margin-top', -a);
+        $('#dwnld-movie, .showBg').show();
+    });
+    movieFlip();
+    loginTextShowHide();
+    lhsMenuActive();
+    js_scripts();
+}

@@ -1,0 +1,1880 @@
+
+// user arjun.patil
+// created 07-11-2016
+
+//delete playlist popup
+/* $('.del-playlist').click(function () {
+ $('#del-playlist, .showBg').show();
+ }); */
+
+$('.user-register').click(function () {
+    $('#user-register, .showBg').show();
+});
+/*$('.user-login').click(function(){
+ //$('#user-login, .showBg').show();
+ showLoginPopup();
+ });*/
+$('.verify').click(function () {
+    $('#verify, .showBg').show();
+});
+$('.pws-success').click(function () {
+    $('#pws-success, .showBg').show();
+});
+$('.change-password').click(function () {
+    $('#change-password, .showBg').show();
+    a = $('#change-password').height() / 2;
+    $('#change-password').css('margin-top', -a);
+});
+$('.profile-success').click(function () {
+    $('#profile-success, .showBg').show();
+});
+$('.add-playlist').click(function () {
+    $('#add-playlist, .showBg').show();
+});
+$('.popup-close').click(function () {
+    $(this).parent().parent().fadeOut();
+    $('.showBg').hide();
+});
+$(".pop-content .field input").focusout(function () {
+    if ($(this).val() == '') {
+        $(this).next().removeClass('hasvalue');
+    } else {
+        $(this).next().addClass('hasvalue');
+    }
+});
+
+$(document).delegate(".icon-ic_view", "click", function () {
+    $('#user_password').prop('type', 'text');
+});
+
+
+$(document).on('ready pjax:success', function () {
+    if (hungamaGetCookie('h_profile')) {
+        var hungamaLoginDetails = JSON.parse(hungamaGetCookie('h_profile'));
+    }
+});
+
+$(document).on("click", "#lead_dropdwn ul li a", function (e) {
+    var type = $(this).data("nodays");
+    change_leaderboard(type);
+    e.preventDefault();
+});
+
+$(document).on('click', '.unsubscribe', function () {
+    var plan_name = $(this).data("plan_name");
+    var plan = $(this).data("plan");
+    $('#unsub_msg').html('You are currently enjoying ' + plan_name + '.<br> Are you sure you want to unsubscribe?');
+    $('#unsub_yes').attr('data-plan', plan);
+    $('#unsubscribe, .showBg').show();
+    if ($(window).width() >= 600) {
+        var a = $('#unsubscribe').height() / 2;
+        $('#unsubscribe').css('margin-top', -a);
+    }
+});
+
+
+$(document).on('click', '#redeem_btn', function () {
+
+    var plan_detail_id = $(this).data("plan_detail_id");
+    var gigay_coins = $(this).data("gigya_coins");
+    var platform = $(this).data("platform");
+    var src_from = $(this).data("src_from");
+    if (hungamaGetCookie('h_profile')) {
+        cookie_details = JSON.parse(hungamaGetCookie('h_profile'));
+        if (cookie_details['status'] == 1) {
+
+            $('#com_hd').html('Redeem Your Coins');
+            $('#com_msg').html('You have ' + gigay_coins + ' points.<br> Are you sure you want to Redeem points?');
+            $('#com_yes').attr('data-plan', plan_detail_id);
+            $('#com_yes').attr('data-platform', platform);
+            $('#com_yes').attr('data-src', src_from);
+            $('#com_yes').attr('data-pay_type', 'redeem');
+            $('#common_msg, .showBg').show();
+            var a = $('#common_msg').height() / 2;
+            $('#common_msg').css('margin-top', -a);
+
+
+        } else {
+            $('#user_action').val('my-subs');
+            $('#user_bil').val(billing);
+            $('#user_pt').val(platform);
+            $('#user_select_pi').val(plan_id);
+            $('#content_id').val(content_id);
+            $('#user_pid').val(pay_id);
+            showLoginPopup();
+        }
+
+    } else {
+        $('#user_action').val('my-subs');
+        $('#user_bil').val(billing);
+        $('#user_pt').val(platform);
+        $('#user_select_pi').val(plan_id);
+        $('#content_id').val(content_id);
+        $('#user_pid').val(pay_id);
+
+        showLoginPopup();
+
+    }
+
+
+});
+
+$(document).on("focus", "#coupon_cd", function (e) {
+    console.log("focus");
+    $('#coupon-error').hide();
+});
+
+$(document).on('click', '#cpn_btn', function () {
+
+    $('#com_yes').attr('data-plan', '');
+    var coupon_cd = $("#coupon_cd").val();
+    console.log("coupon_code" + coupon_cd);
+    if (hungamaGetCookie('h_profile')) {
+        cookie_details = JSON.parse(hungamaGetCookie('h_profile'));
+        if (cookie_details['status'] == 1) {
+            if (coupon_cd == '') {
+
+                $('#coupon-error').html('Enter a valid Coupon Code');
+                $('#coupon-error').show();
+                $('#coupon-error').css({"color": "red", "font-size": "12px"});
+                return false;
+            }
+
+            var platform = "cccode";
+            $('#com_hd').html('Consume Your Coupon');
+            $('#com_msg').html('Are you sure you want to consume coupon?');
+            $('#com_yes').attr('data-coupon_cd', coupon_cd);
+            $('#com_yes').attr('data-platform', platform);
+            $('#com_yes').attr('data-pay_type', 'cccode');
+
+            $('#common_msg, .showBg').show();
+            var a = $('#common_msg').height() / 2;
+            $('#common_msg').css('margin-top', -a);
+
+
+        } else {
+            $('#user_action').val('my-plans');
+            showLoginPopup();
+        }
+
+    } else {
+        $('#user_action').val('my-plans');
+        showLoginPopup();
+
+    }
+
+
+});
+
+
+
+$(document).on('click', '#unsub_no', function () {
+    $('#unsubscribe, .showBg').hide();
+});
+
+$(document).on('click', '#com_no', function () {
+    $('#common_msg, .showBg').hide();
+});
+
+$(document).on('click', '#unsub_yes', function () {
+
+    $('#unsubscribe').hide();
+    $('#p_loading').html('<div class="loading">Loading...</div>');
+    var plan = $(this).data("plan");
+    var data = plan;
+    $.ajax({
+        type: 'POST',
+        url: $('#origin_url').val() + 'index.php?c=pay&m=unsub&plan=' + plan,
+        data: data,
+        success: function (response) {
+
+            var plan_arr = JSON.parse(response);
+            var platform = plan_arr.platform
+            var plan_status = plan_arr.status;
+            $('#p_loading').html('');
+            if (plan_status == 'Yes') {
+
+                $('#login-success #log_success_msg').html('You are successfully unsubscribed from Hungama!');
+                $('.showBg, #login-success').show(0).delay(3000).hide(0);
+                pjaxLoadURL(window.location.href);
+            } else {
+                //$('#profile-success-msg').html(platform); 
+                $('#profile-success-msg').html('Error in Unsubscription , Please Try again!!');
+                $('.showBg, #profile-success').show(0).delay(3000).hide(0);
+
+            }
+
+
+
+        }
+    });
+
+});
+
+$(document).on('click', '#com_yes', function () {
+
+    $("#com_yes").prop("disabled", true);
+    $('#common_msg').hide();
+    $('#p_loading').html('<div class="loading">Loading...</div>');
+    var pay_type = $(this).data("pay_type");
+
+    if (pay_type == 'cccode') {
+
+        var coupon_cd = $(this).data("coupon_cd");
+        var platform = $(this).data("platform");
+        var data = platform;
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + 'index.php?c=pay&m=coupon_consumption&cc_code=' + coupon_cd + '&platform=' + platform,
+            data: data,
+            success: function (response) {
+                var plan_arr = JSON.parse(response);
+                var platform = plan_arr.platform
+                var plan_status = plan_arr.status;
+
+                if (plan_status == 'Yes') {
+
+                    $("#coupon_cd").val('');
+                    $('#p_loading').html('');
+                    $('#login-success #log_success_msg').html('Your Coupon redeem successfully !');
+                    $('.showBg, #login-success').show(0).delay(3000).hide(0);
+                    setTimeout(function () {
+                        showSubRentpopup(platform);
+                        plandisplay();
+                    }, 4000);
+
+                } else {
+                    $("#coupon_cd").val('');
+                    $('#p_loading').html('');
+                    $('#profile-success-msg').html(platform);
+                    $('.showBg, #profile-success').show(0).delay(3000).hide(0);
+
+                }
+            }
+        });
+
+    } else {
+        var src_from = $(this).data("src");
+        var plan = $(this).data("plan");
+        var platform = $(this).data("platform");
+        var content_id = $(this).data("content_id");
+        var data = plan;
+        $('#mvPlayer .pop-close a').trigger('click');
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + 'index.php?c=pay&m=redeem&plan=' + plan + '&platform=' + platform + '&content_id=' + content_id,
+            data: data,
+            success: function (response) {
+                var plan_arr = JSON.parse(response);
+                var plan_status = plan_arr.status;
+                $('#common_msg, .showBg').hide();
+                if (plan_status == 'Yes') {
+                    if (src_from == 'plan') {
+                        showSubRentpopup(platform);
+                        plandisplay();
+                    } else {
+                        $('#p_loading').html('');
+                        $('#login-success #log_success_msg').html('You have been successfully Redeem points!');
+                        $('.showBg, #login-success').show(0).delay(3000).hide(0);
+                        setTimeout(function () {
+                            //playVideoCall();
+
+                            pjaxLoadURL(window.location.href);
+                        }, 3500);
+
+                    }
+                } else {
+                    $('#p_loading').html('');
+                    $('#profile-success-msg').html('Error in Redeem , Please Try again!!');
+                    $('.showBg, #profile-success').show(0).delay(3000).hide(0);
+
+
+                }
+            }
+        });
+    }
+    $("#com_yes").prop("disabled", false);
+});
+
+
+function rentAgainmessage(content_title) {
+    $('#profile-success-msg').html('You have already purchase ' + content_title);
+    $('.showBg, #profile-success').show(0).delay(3000).hide(0);
+}
+
+
+function plandisplay(splan) {
+    $('.showBg').show();
+    $('#p_loading').html('<div class="loading">Loading...</div>');
+    var data = "";
+    $.ajax({
+        type: 'POST',
+        url: $('#origin_url').val() + 'index.php?c=user&m=planpurchase',
+        data: data,
+        success: function (response) {
+            var plan_arr = JSON.parse(response);
+            var plan_status = plan_arr.sub_status;
+            var plan = plan_arr.selected_plan;
+            var plan_list = plan_arr.plan_list.trim();
+            if (plan == '1 Month') {
+                $('.plan1').click();
+            } else if (plan == '3 Months') {
+                $('.plan2').click();
+            } else if (plan == '12 Months') {
+                $('.plan3').click();
+            } else {
+
+            }
+			
+			
+			
+
+            $('.cd-container').owlCarousel('destroy');
+            $('#div-plan-change').html(plan_list);
+            bouncy_filter($('.cd-gallery-container'));
+            var cdCon = $('.cd-container').owlCarousel({
+                loop: false,
+                //slideBy: 3,
+                responsiveClass: true,
+                center: true,
+                startPosition: 1,
+                responsive: {
+                    0: {items: 1.2, slideBy: 1},
+                    768: {items: 3, slideBy: 3, mouseDrag: false, touchDrag: false}
+                }
+            });
+            cdCon.on('resized.owl.carousel', function (event) {
+                resizePlans();
+            })
+            /*$(window).on('resize',function(){
+             resizePlans();
+             });*/
+            resizePlans();
+			if(splan==12){
+				 $('.plan3').click();
+			}
+            $('.showBg').hide();
+            $('#p_loading').html('');
+        }
+    });
+
+}
+
+function showSubdwnpopup(platform, dwn_url) {
+    var counter = 30;
+    var data = 'platform=' + platform + '&dwn_url=' + encodeURIComponent(dwn_url);
+    $.ajax({
+        type: 'POST',
+        url: $('#origin_url').val() + 'index.php?c=pay&m=successpopup&platform=' + platform + '&from=download',
+        data: data,
+        success: function (response) {
+            var popup_arr = JSON.parse(response);
+            var platform = popup_arr.platform;
+            var popup_data = popup_arr.popup_data;
+            if (platform == 'music') {
+
+                user_action_point('music_subscription', 0, 'music');
+                $('#musicpro').html(popup_data);
+                $('#musicpro').show();
+                $('.showBg').show();
+                id = setInterval(function () {
+                    counter--;
+                    if (counter < 0) {
+                        $("#dwn_link").css({'display': 'block'});
+                        clearInterval(id);
+                    } else {
+                        $('#dwn_time').html(counter.toString());
+                        $("#dwn_time").css({'color': 'yellow', 'font-size': '150%'});
+                    }
+                }, 1000);
+
+
+            }
+        }
+    });
+}
+
+function showSubRentpopup(platform) {
+
+    var data = 'platform=' + platform;
+    $.ajax({
+        type: 'POST',
+        url: $('#origin_url').val() + 'index.php?c=pay&m=successpopup&platform=' + platform,
+        data: data,
+        success: function (response) {
+            var popup_arr = JSON.parse(response);
+            var platform = popup_arr.platform;
+            var popup_data = popup_arr.popup_data;
+            if (platform == 'music') {
+                user_action_point('music_subscription', 0, 'music');
+                $('#musicpro').html(popup_data);
+                $('#musicpro').show();
+                $('.showBg').show();
+
+            } else if (platform == 'movie') {
+                user_action_point('purchase', 0, 'movie');
+                $('#unmovies').html(popup_data);
+                $('#unmovies').show();
+                $('.showBg').show();
+
+            } else if (platform == 'combo') {
+                user_action_point('purchase', 0, 'movie');
+                $('#sbscrpop').html(popup_data);
+                $('#sbscrpop').show();
+                $('.showBg').show();
+
+            }
+        }
+    });
+}
+
+
+
+$(document).on("click", "#bdg_info,#bdg_info_ic", function (e) {
+    $('.showBg').show();
+    var badge_url = $(this).data("badge_url");
+    var badge_level = $(this).data("badge_level");
+    var badge_name = $(this).data("badge_name");
+    var level_per = $(this).data("level_per");
+    var bdg_nxt_desc = $(this).data("bdg_nxt_desc");
+    var bdg_desc = $(this).data("bdg_desc");
+    var bdg_pg_url = window.location.href;
+    $(".bdg-img").html('<img src=' + badge_url + ' width="25%" alt="">');
+    $(".popCont h2").html(badge_name);
+    $(".popCont p").html(badge_level);
+    $('.bdgBar div').css({"width": level_per + "%"});
+    $(".popCont h3").html(bdg_desc);
+    $("#bdg_nxt_desc").html(bdg_nxt_desc);
+
+    $('#popBadge_share').attr('data-share-title', badge_name);
+    $('#popBadge_share').attr('data-share-desc', bdg_desc);
+    $('#popBadge_share').attr('data-share-id', badge_level);
+    $('#popBadge_share').attr('data-share-image', badge_url);
+    $('#popBadge_share').attr('data-share-url', bdg_pg_url);
+    $('#popBadge_share').attr('data-share-type', 'badge');
+    $('#popBadge_share').attr('data-share-clean-title', 'badge');
+    $('#popBadge_share').attr('onclick', 'badge_popup_hide();socialShare(this)');
+
+    $('.popBadge').show();
+    e.preventDefault();
+});
+
+$(document).on("click", "#plan-login", function (e) {
+    $('#user_action').val('my-plans');
+    showLoginPopup();
+});
+
+function badge_popup_hide() {
+    $('#badge').hide();
+}
+
+
+function change_leaderboard(nodays) {
+    $('.showBg').show();
+    var data = nodays;
+    $.ajax({
+        type: 'POST',
+        url: $('#origin_url').val() + 'index.php?c=user&m=leaderboard&peroid=' + nodays,
+        data: data,
+        success: function (response) {
+
+            var popup_arr = JSON.parse(response);
+            var login_status = popup_arr.login_status;
+            var leader_board = popup_arr.leader_board;
+            var badge_info = popup_arr.badge_info;
+            $(".ranking-container").html(leader_board);
+
+            if (login_status == 'Yes') {
+                $(".badges-container").html(badge_info);
+                $('.badges-carousel').owlCarousel({
+                    loop: false,
+                    responsiveClass: true,
+                    responsive: {
+                        0: {items: 2.2, nav: true, slideBy: 2},
+                        480: {items: 3.2, nav: true, slideBy: 3},
+                        720: {items: 4, nav: true, slideBy: 4},
+                        1000: {items: 5, nav: true, slideBy: 5},
+                        1180: {items: 6, nav: true, slideBy: 6},
+                        1280: {items: 5, nav: true, slideBy: 5},
+                        1490: {items: 6, nav: true, slideBy: 6},
+                        1670: {items: 7, nav: true, slideBy: 7},
+                        1850: {items: 8, nav: true, slideBy: 8},
+                        2030: {items: 9, nav: true, slideBy: 9},
+                        2210: {items: 10, nav: true, slideBy: 10},
+                        2390: {items: 11, nav: true, slideBy: 11},
+                        2570: {items: 12, nav: true, slideBy: 12}
+                    }
+                });
+            }
+
+            $(".ranking-container .ranking-list").mCustomScrollbar();
+            $('.showBg').hide();
+            setTimeout(function () {
+                var user_points = hungamaGetCookie('_hgpt');
+                $('#reward_user_point_2').html(user_points);
+            }, 500);
+
+        }
+    });
+
+}
+
+function showNotification() {
+    if (hungamaGetCookie('h_profile')) {
+        cookie_details = JSON.parse(hungamaGetCookie('h_profile'));
+        loggedin_status = cookie_details['status'];
+    }
+
+    if (loggedin_status == 1) {
+        if ($('#notify-dropdown1').css('display') == 'block') {
+            $('#notify-dropdown1').hide();
+            $('.showBg').fadeOut("fast");
+        } else {
+            $('#notify-dropdown1').show();
+            $('#myacc-dropdown').hide();
+            $('.showBg').fadeIn("fast");
+        }
+    } else {
+        if ($('#notify-dropdown').css('display') == 'block') {
+            $('#notify-dropdown').hide();
+            $('.showBg').fadeOut("fast");
+        } else {
+            $('#notify-dropdown').show();
+            $('#myacc-dropdown').hide();
+            $('.showBg').fadeIn("fast");
+        }
+    }
+}
+
+function hungamaGetCookie(name) {
+    var nameEQ = name + "=";
+	var ca = document.cookie.split(';');
+	for(var i=0;i < ca.length;i++) {
+		var c = ca[i];
+		while (c.charAt(0)==' ') c = c.substring(1,c.length);
+		if (c.indexOf(nameEQ) == 0) return decodeURIComponent(c.substring(nameEQ.length,c.length));
+	}
+	return null;
+}
+
+function hungamaSetCookie(c_name, value, expiredays) {
+    var exdate = new Date();
+    exdate.setDate(exdate.getDate() + expiredays);
+    document.cookie = c_name + "=" + escape(value) + ";path=/;domain=.hungama.com;" +
+            ((expiredays == null) ? "" : ";expires=" + exdate.toGMTString());
+}
+
+function hungamaSetCookieTime(c_name, value, expiretime) {
+    var exdate = new Date();
+    exdate.setTime(exdate.getTime() + (expiretime * 1000 * 60));
+    document.cookie = c_name + "=" + escape(value) + ";path=/;domain=.hungama.com;" +
+            ((expiretime == null) ? "" : ";expires=" + exdate.toGMTString());
+}
+
+$('.tab-content a, .dropdown-content a').click(function (event) {
+    event.preventDefault();
+    $.ajax({
+        url: $(this).attr('href')
+        , success: function (response) {
+            $("#wrapper").html(response);
+        }
+    })
+    return false;
+});
+
+function logoutFromHungama() {
+    $(".showBg").hide();
+    $('#p_loading').html('<div class="loading">Loading...</div>');
+    $.ajax({
+        type: 'POST',
+        url: $('#origin_url').val() + 'logout',
+        success: function (response) {
+            console.log(response);
+            var JSONFile = "ResponseVar = " + response;
+            eval(JSONFile);
+            if (ResponseVar.logout == 'true') {
+                hungamaSetCookie('_hlog', '', -365);
+                hungamaSetCookie('_hgpt', '', -365);
+                hungamaSetCookie('_hgdl', '', -365);
+                $("#logged-text").hide();
+                $("#login-text").show();
+                $("#signup-text").show();
+                cm_unset();
+
+                $('#user_fav_data').val('');
+                $('#user_watchlist_data').val('');
+                $('#user_artist_followed_data').val('');
+                $('#user_notify_me').val('');
+
+                //window.location.reload();
+                var page = window.location.href;
+
+                if (page.indexOf('user') == '-1') {
+                    rurl = page;
+                } else {
+                    rurl = $('#site_url').val();
+                }
+
+                console.log(page.indexOf('user') + ' = ' + rurl);
+
+                pjaxLoadURL(rurl);
+                loginTextShowHide();
+                $(".showBg").hide();
+                $('#p_loading').html('');
+            }
+        }
+    });
+}
+
+
+function loginInsideHungama(username, password) {
+    $(".showBg").hide();
+    $('#p_loading').html('<div class="loading">Loading...</div>');
+    $.ajax({
+        type: 'POST',
+        url: $('#origin_url').val() + 'login',
+        data: {user_email: username, user_password: password},
+        success: function (response) {
+            var JSONFile = "ResponseVar = " + response;
+            eval(JSONFile);
+            if (ResponseVar.login == 'true') {
+                // Reload Page
+				pjaxLoadURL(window.location.href);
+                $(".showBg").hide();
+                $('#p_loading').html('');
+
+                //Set User Data Start
+                h_notify('r');
+                //Set User Data End
+            } else {
+                showPopup("Login Error", "Please enter valid username and password");
+            }
+        }
+    });
+}
+
+function registerToHungama() {
+    /*var regFirstName = $("#regFirstName").val();
+     var regLastName = $("#regLastName").val();
+     var regEmail = $("#regEmail").val();
+     //var regMobile 		= $("#regMobile").val();
+     
+     var emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+     //var phonePattern = /^[0-9]+$/;
+     
+     if ((regFirstName == '') || (regFirstName == 'First Name')) {
+     alert("Please enter a valid First Name");
+     return false;
+     } else if ((regLastName == '') || (regLastName == 'Last Name')) {
+     alert("Please enter a valid Last Name");
+     return false;
+     } else if ((regLastName == '') || (regLastName == 'Last Name')) {
+     alert("Please enter a valid Last Name");
+     return false;
+     } else if ((regEmail == '') || (regEmail == 'Email Address')) {
+     alert("Please enter a valid Email Address");
+     return false;
+     } else if (emailPattern.test(regEmail) == false) {
+     alert("Please Enter Valid Email Address");
+     $("#email").focus();
+     return false;
+     /*
+     }else if((regMobile=='') || (regMobile=='Mobile Number')){
+     alert("Please enter a valid Mobile Number");
+     return false;
+     }else if(phonePattern.test(regMobile) == false){
+     alert("Please Enter Valid Mobile Number ");
+     $("#email").focus();
+     return false; */
+    /*} else {
+     var data = $("#userRegisterFrm").serialize();
+     $.ajax({
+     type: 'POST',
+     url: $('#origin_url').val() + 'registration',
+     data: data,
+     success: function (response) {
+     var JSONFile = "ResponseVar1 = " + $.trim(response);
+     eval(JSONFile);
+     if (ResponseVar1.STATUS == 200) {
+     $("#regFirstName, #regLastName, #regEmail, #regMobile").val("");
+     $('.popSmall, .showBg').fadeOut(500);
+     loginInsideHungama(ResponseVar1.EMAILID, ResponseVar1.PASS);
+     } else if(ResponseVar1.STATUS == 409) {
+     alert("Already Registered");
+     loginInsideHungama(ResponseVar1.EMAILID, ResponseVar1.PASS);
+     } else {
+     $("#regFirstName, #regLastName, #regEmail, #regMobile").val("");
+     $('.popSmall, .showBg').fadeOut(500);
+     if (ResponseVar1.STATUS == 452)
+     alert("Duplicate Mobile");
+     }
+     }
+     });
+     return false;
+     }*/
+}
+
+function registerToHungamaWithPassword() {
+    /*var regEmail = $("#regEmail").val();
+     var regPassword = $("#regPassword").val();
+     var regConfPassword = $("#regConfPassword").val();
+     var emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+     
+     
+     if ((regEmail == '') || (regEmail == 'Email Address')) {
+     alert("Please enter a valid Email Address");
+     $("#email").focus();
+     return false;
+     } else if (emailPattern.test(regEmail) == false) {
+     alert("Please Enter Valid Email Address");
+     $("#email").focus();
+     return false;
+     }else if((regPassword=='') || (regPassword=='Password') || regPassword.length < 8 || regPassword.length > 14 ){
+     alert("Please enter a valid Password, Passwords must be between 6 to 14 characters");
+     $("#regPassword").focus();
+     return false;
+     }else if((regConfPassword=='') || (regConfPassword=='Password') || regConfPassword.length < 6 || regConfPassword.length > 14){
+     alert("Please Enter Valid Confirm Password, Confirm Passwords must be between 6 to 14 characters");
+     $("#regConfPassword").focus();
+     return false;
+     }else if((regConfPassword != regPassword) ){
+     alert("Password and confirm password should be the same");
+     $("#regConfPassword").focus();
+     return false;
+     } else {
+     var data = $("#userRegisterFrm").serialize();
+     $.ajax({
+     type: 'POST',
+     url: $('#origin_url').val() + 'registration',
+     data: data,
+     success: function (response) {
+     var JSONFile = "ResponseVar1 = " + $.trim(response);
+     eval(JSONFile);
+     if (ResponseVar1.STATUS == 200) {
+     loginInsideHungama(ResponseVar1.EMAILID, ResponseVar1.PASS);
+     } else if(ResponseVar1.STATUS == 409) {
+     alert("Already Registered");
+     loginInsideHungama(ResponseVar1.EMAILID, ResponseVar1.PASS);
+     } else {
+     if (ResponseVar1.STATUS == 452)
+     alert("Duplicate Mobile");
+     }
+     }
+     });
+     return false;
+     }*/
+}
+
+function register() {
+	var form_to_submit = '';
+
+    if ($('#registerPop').css('display') == 'block') {
+        console.log('registerPop');
+        var form_to_submit = '#registerPop ';
+    }
+    if ($('#login-signup').css('display') == 'block') {
+        console.log('login-signup');
+        var form_to_submit = '#login-signup ';
+    }
+    console.log('form_to_submit ' + form_to_submit);
+	
+    var regFullName = $(form_to_submit + "#regFullName").val();
+    var regEmail = $(form_to_submit + "#regEmail").val();
+    var regPassword = $(form_to_submit + "#regPassword").val();
+    var regConfPassword = $(form_to_submit + "#regConfPassword").val();
+    var emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+
+    if (regFullName == '' && (regFullName.length < 4 || regFullName.length > 20)) {
+        $(form_to_submit + '#reg-error-name').html('Please enter a valid Name, Name must be between 4 to 20 characters');
+        $(form_to_submit + '#reg-error-name').show();
+        $(form_to_submit + '#reg-error-email').hide();
+        $(form_to_submit + '#reg-error-pass').hide();
+        $(form_to_submit + '#reg-error-conf').hide();
+        $(form_to_submit + "#regFullName").focus();
+        return false;
+    } else if ((regEmail == '') || (regEmail == 'Email Address')) {
+        $(form_to_submit + '#reg-error-email').html('Sorry, please enter valid Email ID');
+        $(form_to_submit + '#reg-error-name').hide();
+        $(form_to_submit + '#reg-error-email').show();
+        $(form_to_submit + '#reg-error-pass').hide();
+        $(form_to_submit + '#reg-error-conf').hide();
+        $(form_to_submit + "#regEmail").focus();
+        return false;
+    } else if (emailPattern.test(regEmail) == false) {
+        $(form_to_submit + '#reg-error-email').html('Sorry, please enter valid Email ID');
+        $(form_to_submit + '#reg-error-name').hide();
+        $(form_to_submit + '#reg-error-email').show();
+        $(form_to_submit + '#reg-error-pass').hide();
+        $(form_to_submit + '#reg-error-conf').hide();
+        $(form_to_submit + "#regEmail").focus();
+        return false;
+    } else if ((regPassword == '') || (regPassword == 'Password') || regPassword.length < 4 || regPassword.length > 14) {
+        $(form_to_submit + '#reg-error-pass').html('Please enter a valid Password, Passwords must be between 4 to 14 characters');
+        $(form_to_submit + '#reg-error-name').hide();
+        $(form_to_submit + '#reg-error-email').hide();
+        $(form_to_submit + '#reg-error-pass').show();
+        $(form_to_submit + '#reg-error-conf').hide();
+        $(form_to_submit + "#regPassword").focus();
+        return false;
+    } else if ((regConfPassword == '') || (regConfPassword == 'Password') || regConfPassword.length < 4 || regConfPassword.length > 14) {
+        $(form_to_submit + '#reg-error-conf').html('Please Enter Valid Confirm Password, Confirm Passwords must be between 4 to 14 characters');
+        $(form_to_submit + '#reg-error-name').hide();
+        $(form_to_submit + '#reg-error-email').hide();
+        $(form_to_submit + '#reg-error-pass').hide();
+        $(form_to_submit + '#reg-error-conf').show();
+        $(form_to_submit + "#regConfPassword").focus();
+        return false;
+    } else if ((regConfPassword != regPassword)) {
+        $(form_to_submit + '#reg-error-conf').html('Sorry, passwords did not match.');
+        $(form_to_submit + '#reg-error-name').hide();
+        $(form_to_submit + '#reg-error-email').hide();
+        $(form_to_submit + '#reg-error-pass').hide();
+        $(form_to_submit + '#reg-error-conf').show();
+        $(form_to_submit + "#regConfPassword").focus();
+        return false;
+    } else {
+        $('.log-btn').addClass('btn-disable').removeClass('btn-main');
+        $(".showBg").show();
+        $('#p_loading').html('<div class="loading">Loading...</div>');
+
+		$('#login-signup, #registerPop').hide();
+        $(form_to_submit + '#login-signup').hide();
+        $(form_to_submit + '#reg-error-name').hide();
+        $(form_to_submit + '#reg-error-email').hide();
+        $(form_to_submit + '#reg-error-pass').hide();
+        $(form_to_submit + '#reg-error-conf').hide();
+
+        var data = $(form_to_submit + "#userRegisterFrm").serialize();
+        console.log(data);
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + 'registration',
+            data: data,
+            success: function (response) {
+                console.log(response);
+                $(form_to_submit + "#regFullName").val('');
+                $(form_to_submit + "#regEmail").val('');
+                $(form_to_submit + "#regPassword").val('');
+                $(form_to_submit + "#regConfPassword").val('');
+                $(".showBg").hide();
+                $('#p_loading').html('');
+                $('body').removeClass('fixed');
+                var JSONFile = "ResponseVar1 = " + $.trim(response);
+                eval(JSONFile);
+                if (ResponseVar1.status == 200) {
+                    loginInsideHungama(regEmail, regPassword);
+                } else if (ResponseVar1.status == 409) {
+                    /*alert("Already Registered"); loginInsideHungama(regEmail, regPassword);*/
+                    showEmailExistPopup();
+                   $('#login-signup, #registerPop').hide();
+                } else {
+                    alert(ResponseVar1.message);
+                }
+                $('.log-btn').addClass('btn-main').removeClass('btn-disable');
+            }
+        });
+        return false;
+    }
+}
+
+function login() {
+	var form_to_submit = '';
+
+    if ($('#loginPop').css('display') == 'block') {
+        console.log('loginPop');
+        var form_to_submit = '#loginPop ';
+    }
+    if ($('#login-signin').css('display') == 'block') {
+        console.log('login-signin');
+        var form_to_submit = '#login-signin ';
+    }
+    console.log('form_to_submit ' + form_to_submit);
+    var user_email = $(form_to_submit + "#user_email").val();
+    var user_password = $(form_to_submit + "#user_password").val();
+    var user_action = $(form_to_submit + "#user_action").val();
+    var user_msg = $(form_to_submit + "#user_msg").val();
+    var content_id = $(form_to_submit + "#content_id").val();
+    var content_title = $(form_to_submit + "#content_title").val();
+    var content_type = $(form_to_submit + "#content_type").val();
+    var rating = $(form_to_submit + "#movie_rating").val();
+    var loginref = $(form_to_submit + "#loginref").val();
+    var emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+
+    console.log(user_email);
+    console.log(user_password);
+    console.log(loginref);
+
+    /*if(loginref == null || loginref == '') { 
+     loginref = $('#site_url').val();
+     }*/
+
+    var user_bil = $(form_to_submit + "#user_bil").val();
+    var user_pt = $(form_to_submit + "#user_pt").val();
+    var user_select_pi = $(form_to_submit + "#user_select_pi").val();
+    var user_pid = $(form_to_submit + "#user_pid").val();
+
+
+    if ((user_email == '') || (user_email == 'User Name')) {
+        $(form_to_submit + '#login-error-email').html('Sorry, please enter valid Email ID');
+        $(form_to_submit + '#login-error-email').show();
+        $(form_to_submit + '#login-error-pass').hide();
+        $(form_to_submit + "#user_email").focus();
+        return false;
+    } else if (emailPattern.test(user_email) == false) {
+        $(form_to_submit + '#login-error-email').html('Sorry, please enter valid Email ID');
+        $(form_to_submit + '#login-error-email').show();
+        $(form_to_submit + '#login-error-pass').hide();
+        $(form_to_submit + "#user_email").focus();
+        return false;
+    } else if ((user_password == '') || (user_password == 'User Password')) {
+        $(form_to_submit + '#login-error-pass').html('Please enter a valid Password');
+        $(form_to_submit + '#login-error-email').hide();
+        $(form_to_submit + '#login-error-pass').show();
+        $(form_to_submit + "#user_password").focus();
+        return false;
+    } else {
+        var performance = window.performance;
+        //var startLogin = performance.now();
+
+        $('.log-btn').addClass('btn-disable').removeClass('btn-main');
+
+        //$('#login-signin').hide();
+        $(form_to_submit + '#login-error-email').hide();
+        $(form_to_submit + '#login-error-pass').hide();
+        $(".showBg").show();
+        $('#p_loading').html('<div class="loading">Loading...</div>');
+        var data = $(form_to_submit + "#userLoginFrm").serialize();
+
+        $(form_to_submit + "#user_email").val('');
+        $(form_to_submit + "#user_password").val('');
+        $(form_to_submit + "#user_email").focus();
+
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + 'login',
+            data: data,
+            success: function (response) {
+                $('body').removeClass('fixed');
+                $('.log-btn').addClass('btn-main').removeClass('btn-disable');
+                cm_Init();
+                //var endLogin = performance.now();
+
+                //console.log("Login from Secure took " + (endLogin - startLogin) + " milliseconds.");
+
+                var JSONFile = "ResponseVar = " + response;
+                eval(JSONFile);
+                if (ResponseVar.login == 'true') {
+
+                    $("#loginPop, #login-signin,.showBg").hide();
+                    $('#p_loading').html('');
+                    //$('#user_ln_status').val('yes');
+                    $(form_to_submit + '#user_fav_data').val(ResponseVar.fav_data);
+                    $(form_to_submit + '#user_watchlist_data').val(ResponseVar.watchlist_data);
+                    $(form_to_submit + '#user_artist_followed_data').val(ResponseVar.artist_followed_data);
+                    var index, w_content_id;
+                    var a = ResponseVar.watchlist_data;
+                    for (index = 0; index < a.length; ++index) {
+                        w_content_id = a[index];
+                        if ($("#movie_id_" + w_content_id).length) {
+                            $("#movie_id_" + w_content_id).removeClass('icon-ic_watchlist_add');
+                            $("#movie_id_" + w_content_id).addClass('icon-ic_watchlist');
+                        }
+                    }
+
+                    if (user_action == 'user_favourite') {
+                        fav_array = ResponseVar.fav_data;
+                        fav_array = JSON.parse(fav_array);
+                        console.log("Fav array" + fav_array);
+                        fav_array_count = fav_array.length;
+                        console.log('Favourite Count: ' + fav_array_count);
+                        $('#hungama_ap .icon-ic_favourite_1-46').removeClass('player_fav_item');
+                        $('#hungama_ap .icon-ic_favourite_1-46').removeClass('icon-ic_favourite_fill');
+                        for (p = 0; p < fav_array_count; p++) {
+                            console.log("Fav array of p : " + fav_array[p]);
+                            if (fav_array[p] == content_id) {
+                                $('#hungama_ap .icon-ic_favourite_1-46').addClass('icon-ic_favourite_fill');
+                                $('#hungama_ap .icon-ic_favourite_1-46').addClass('player_fav_item');
+                                $('#page_fav_' + content_id).removeClass('icon-ic_favourite');
+                                $('#page_fav_' + content_id).addClass('icon-ic_favourite_fill');
+                            }
+                        }
+
+                        if (ResponseVar.action_status == 'done') {
+                            messageShowpopup(user_msg);
+                        } else {
+                            messageShowpopup("Error occured ...");
+                        }
+                    } else if (user_action == 'user_mywatchlist') {
+                        console.log('user_mywatchlist == ' + ResponseVar.action_status);
+                        if (ResponseVar.action_status == 'done') {
+                            messageShowpopup(user_msg);
+                        } else if (ResponseVar.action_status == 'removed') {
+                            messageShowpopup("Movie " + content_title + " Removed from My Watchlist");
+                        } else {
+                            messageShowpopup("Error occured ...");
+
+                        }
+                    } else if (user_action == 'user_addtomyplaylist') {
+                        $('#create-playlist, .showBg').show();
+                        user.getUserPlaylist({content_id: content_id, content_title: content_title, content_type: content_type});
+                    } else if (user_action == 'user_download') {
+                        /*if (ResponseVar.action_status == 'done') {
+                            data = ResponseVar.download_file_path;
+                            get_details_for_tracking(content_id, 'track');
+                            window.open(data, "_parent", '', '');
+                        } else {
+                            showPopup("", "You have not subscribed for any plan to download ");
+                        }*/
+                    } else if (user_action == 'user_ratemovie') {
+                        var action_st = ResponseVar.action_status;
+                        var response = JSON.parse(action_st);
+                        var rating = response.node['data']['user_rating'];
+                        $("#user_rating_" + content_id).html(rating + '/10');
+                        $(".user_rating_" + content_id).show();
+                        $("#user_rating_" + content_id).show();
+                        messageShowpopup('Rated Successfully');
+
+                        /*if (ResponseVar.action_status == 'added') {
+                         showPopup("", user_msg);
+                         } else if (ResponseVar.action_status == 'updated') {
+                         showPopup("", user_msg);
+                         } else {
+                         showPopup("", "Error occured ...");
+                         }*/
+                    } else if (user_action == 'user_notifyme') {
+                        if (ResponseVar.action_status == 'added') {
+                            showPopup("", user_msg);
+                            $('#un_notifyme_' + content_id).show();
+                            $('#notifyme_' + content_id).hide();
+                        } else {
+                            showPopup("", "Error occured ...");
+                        }
+                    } else if (user_action == 'user_playvideo') {
+                        if (ResponseVar.action_status == 'done') {
+                            //$('.playInPlayer').click();
+							var curr_url = $(location).attr('href');
+							pjaxLoadURL(curr_url);
+                        } else {
+                            showPopup("", "Error occured while login...");
+                        }
+                    } else if (user_action == 'user_playmovie') {
+                        if (ResponseVar.action_status == 'done') {
+                            //$('.playInPlayer').click();
+							var curr_url = $(location).attr('href');
+							pjaxLoadURL(curr_url); 
+                        } else {
+                            showPopup("", "Error occured while login...");
+                        }
+                    } else if (user_action == 'user_testimonial') {
+                        if (ResponseVar.action_status == 'done') {
+                            $('#testimonialFrm').show();
+                            if (hungamaGetCookie('h_profile')) {
+                                hungamaLoginDetails1 = JSON.parse(hungamaGetCookie('h_profile'));
+                                user_first_name = hungamaLoginDetails1['firstName'];
+                                user_last_name = hungamaLoginDetails1['lastName'];
+                                user_name = hungamaLoginDetails1['userName'];
+                                $("#userName").val(user_first_name + ' ' + user_last_name);
+                                $("#userEmail").val(user_name);
+                                // alert('hungamaLoginDetails1 == '+hungamaLoginDetails1);
+                            }
+                        } else {
+                            $('#testimonialFrm').hide();
+                        }
+                    } else if (user_action == 'user_loadplaylist') {
+                        var listHTML, chk_status;
+                        $.ajax({
+                            type: 'POST',
+                            url: $('#origin_url').val() + 'user/playlists',
+                            success: function (response) {
+                                var data = JSON.parse(response);
+                                if (data.playlist.length > 0) {
+                                    listHTML = '<ul class="myPlaylist">';
+                                    for (var i = 0; i < data.playlist.length; i++) {
+                                        if (i == 0) {
+                                            chk_status = 'checked';
+                                        } else {
+                                            chk_status = '';
+                                        }
+                                        var id = data.playlist[i]['id'];
+                                        //var id = '5059';
+                                        listHTML += '<li><div><input type="radio" id="radio_' + i + '" name="user_radio" ' + chk_status + ' value="' + id + '" /><label for="radio_' + i + '"><span></span>' + data.playlist[i]['title'] + '</label></div></li>';
+                                    }
+                                    listHTML += '</ul><p class="CTR"><a href="javascript:void(0);" onclick="user.loadUserPlaylistIntoAP();" class="button">Load</a></p>';
+                                } else {
+                                    listHTML = "<p>Sorry, You dont have any saved Playlist</p>";
+                                }
+                                showPopup("Load Playlist", listHTML);
+                            }
+                        });
+                    } else if (user_action == 'my-plans') {
+                        //$('#login-success').show(0).delay(5000).hide(0);
+                        //window.location.reload();
+                        pjaxLoadURL($('#site_url').val() + 'plans');
+                    } else if (user_action == 'my-subs') {
+                        //$('#login-success').show(0).delay(5000).hide(0);	
+                        if (ResponseVar.action_status == 'done') {
+                            var curr_url_tmp = $(location).attr('href');
+							curr_url_tmp_check=curr_url_tmp.split("?")[0];
+							var arr_page=curr_url_tmp_check.split('/')[3];
+							if(arr_page=='plans'){
+							 var curr_url=curr_url_tmp.split("?")[0];
+							}else{
+							 var curr_url=curr_url_tmp;	
+							}
+							pjaxLoadURL(curr_url);
+							
+                        } else {
+                            redirectToPay(user_bil, user_pt, user_select_pi, content_id, user_pid);
+                        }
+
+                    } else {
+                        loginTextShowHide();
+
+                        console.log("loginref" + loginref);
+                        if (loginref != null && loginref != '' && loginref != 'undefined') {
+                            //var startpjaxLoadURL = performance.now();
+                            pjaxLoadURL(loginref);
+                            //var endpjaxLoadURL = performance.now();
+                            //console.log("Load Home page took " + (endpjaxLoadURL - startpjaxLoadURL) + " milliseconds.");
+                        } else {
+                            //var startpjaxLoadURL = performance.now();
+                            ////pjaxLoadURL(window.location.href+'/play');
+                            //var endpjaxLoadURL = performance.now();
+                            //console.log("Load Home page took " + (endpjaxLoadURL - startpjaxLoadURL) + " milliseconds.");
+                        }
+                    }
+                    loginTextShowHide();
+
+                    //Set User Data Start
+                    setUserData();
+                    //Set User Data End
+
+                    //Set User Data Start
+                    h_notify('l');
+                    //Set User Data End
+					
+					// Reload Page
+					pjaxLoadURL(window.location.href);
+                } else {
+                    //showLoginFailedPopup();
+                    var page = window.location.href;
+                    if (page.indexOf('user-login') == '-1') {
+                        $('#p_loading').html('');
+                        //$('.showBg, #login-signin').show();
+                    } else {
+                        $('#p_loading').html('');
+                        $('.showBg').hide();
+                    }
+                    $(form_to_submit + '#login-error-pass').hide();
+                    $(form_to_submit + '#login-error-email').html(ResponseVar.data);
+                    $(form_to_submit + '#login-error-email').show();
+                    return false;
+                }
+                loginTextShowHide();
+            }
+        });
+        return false;
+    }
+}
+
+function  getUserActionFunctions() { 
+    console.log('getUserActionFunctions');
+    var user_action = $("#user_action").val();
+    var user_msg = $("#user_msg").val();
+    var content_id = $("#content_id").val();
+    var content_title = $("#content_title").val();
+    var content_type = $("#content_type").val();
+    var rating = $("#movie_rating").val();
+    
+    var user_bil = $("#user_bil").val();
+    var user_pt = $("#user_pt").val();
+    var user_select_pi = $("#user_select_pi").val();
+    var user_pid = $("#user_pid").val();
+    
+    var params = {'content_type': content_type, 'content_title': content_title, 'content_id': content_id};
+    console.log("user_action : " + user_action);
+    console.log("content_type : " + content_type);
+    console.log("content_title : " + content_title);
+    console.log("content_id : " + content_id);
+    if (user_action == 'user_favourite') {
+        console.log('inside userfavourite');
+        user.addToMyFavourite(params);
+    } else if (user_action == 'user_download') {
+        console.log('inside user download');
+        user.downloadContent(params);
+    } else if (user_action == 'user_mywatchlist') {
+        console.log('inside user watchlist');        
+        if (document.getElementById('movie_id_'+content_id)) {    
+            console.log('inside movie_id_'+content_id);
+            user.userWatchlistAction(params);
+        } 
+        if (document.getElementById('movie_consumption_'+content_id)) {    
+            console.log('inside movie_consumption_'+content_id);
+            user.userConsumptionWatchlistAction(params);
+        } 
+        if (document.getElementById('movie_continue_watchlist_'+content_id)) {    
+            console.log('inside movie_continue_watchlist_'+content_id);
+            user.userContinueWatchlistAction(params);
+        }                 
+    }  else if (user_action == 'user_artist_followed') {
+        console.log('inside user user_artist_followed');        
+        if (document.getElementById('artist_id_'+content_id)) {    
+            console.log('inside artist_id_'+content_id);
+            user.userArtistFollowedAction(params);
+        } 
+        if (document.getElementById('artist_consumption_'+content_id)) {    
+            console.log('inside artist_consumption_'+content_id);
+            user.userArtistFollowedActionConsumption(params);
+        }                
+    } else if (user_action == 'user_ratemovie') {
+        console.log('inside user ratemovie');
+        user.rateMovie();
+    } else if (user_action == 'user_notifyme') {
+            messageShowpopup(user_msg);
+            $('#un_notifyme_' + content_id).show();
+            $('#notifyme_' + content_id).hide();       
+    } else if (user_action == 'user_playvideo') {
+            //$('.playInPlayer').click();
+            var curr_url = $(location).attr('href');
+            pjaxLoadURL(curr_url);			
+    } else if (user_action == 'user_playmovie') {
+            //$('.playInPlayer').click();
+			
+			var curr_url = $(location).attr('href');
+            pjaxLoadURL(curr_url);	
+    } else if (user_action == 'user_testimonial') {
+            $('#testimonialFrm').show();
+            if (hungamaGetCookie('h_profile')) {
+                hungamaLoginDetails1 = JSON.parse(hungamaGetCookie('h_profile'));
+                user_first_name = hungamaLoginDetails1['firstName'];
+                user_last_name = hungamaLoginDetails1['lastName'];
+                user_name = hungamaLoginDetails1['userName'];
+                $("#userName").val(user_first_name + ' ' + user_last_name);
+                $("#userEmail").val(user_name);
+            }       
+    } else if (user_action == 'user_loadplaylist') {
+        var listHTML, chk_status;
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + 'user/playlists',
+            success: function (response) {
+                var data = JSON.parse(response);
+                if (data.playlist.length > 0) {
+                    listHTML = '<ul class="myPlaylist">';
+                    for (var i = 0; i < data.playlist.length; i++) {
+                        if (i == 0) {
+                            chk_status = 'checked';
+                        } else {
+                            chk_status = '';
+                        }
+                        var id = data.playlist[i]['id'];
+                        //var id = '5059';
+                        listHTML += '<li><div><input type="radio" id="radio_' + i + '" name="user_radio" ' + chk_status + ' value="' + id + '" /><label for="radio_' + i + '"><span></span>' + data.playlist[i]['title'] + '</label></div></li>';
+                    }
+                    listHTML += '</ul><p class="CTR"><a href="javascript:void(0);" onclick="user.loadUserPlaylistIntoAP();" class="button">Load</a></p>';
+                } else {
+                    listHTML = "<p>Sorry, You dont have any saved Playlist</p>";
+                }
+                showPopup("Load Playlist", listHTML);
+            }
+        });
+    } else if (user_action == 'my-plans') {
+        pjaxLoadURL($('#site_url').val() + 'plans');
+    } else if (user_action == 'my-subs') {
+		
+		
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + '?c=login&m=userLoginActions',
+            data: {
+            content_id: content_id,
+            content_type: content_type,
+            user_action: user_action,
+			user_bil:user_bil,
+			user_pt:user_pt,
+			user_select_pi:user_select_pi,
+			user_pid:user_pid,
+            },
+            success: function (result) { 
+                console.log(result); 
+                var ResponseVar = JSON.parse(result); 
+                 if (ResponseVar.action_status == 'done') {
+						var curr_url_tmp = $(location).attr('href');
+						curr_url_tmp_check=curr_url_tmp.split("?")[0];
+						var arr_page=curr_url_tmp_check.split('/')[3];
+						if(arr_page=='plans'){
+						 var curr_url=curr_url_tmp.split("?")[0];
+						}else{
+						 var curr_url=curr_url_tmp;	
+						}
+                    } else {
+                        redirectToPay(user_bil, user_pt, user_select_pi, content_id, user_pid);
+                    }
+            }
+        });	       
+    }
+}
+function showUserActionMessage() {
+    var user_action = $("#user_action").val();
+    var user_msg = $("#user_msg").val();
+    var content_id = $("#content_id").val();
+    var content_title = $("#content_title").val();
+    var content_type = $("#content_type").val();
+    var rating = $("#movie_rating").val();
+    console.log(user_msg);
+    messageShowpopup(user_msg);
+
+}
+
+function change_pass() {
+    console.log('In Update Function');
+    var ch_current_pass = $("#ch_current_pass").val();
+    var ch_new_pass = $("#ch_new_pass").val();
+    var ch_confirm_pass = $("#ch_confirm_pass").val();
+    var ch_user_name = $("#ch_user_name").val();
+
+    $('#ch_error_current_pass').hide();
+    $('#ch_error_new_pass').hide();
+    $('#ch_error_confirm_pass').hide();
+
+    var emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+    /*if ((ch_user_name == '') || (ch_user_name == 'User Name')) {
+     $('#ch_error').html('Invalid Username');
+     $('#ch_error').show();
+     return false;
+     } else if (emailPattern.test(ch_user_name) == false) {
+     $('#ch_error').html('Invalid Username');
+     $('#ch_error').show();
+     return false;
+     } else*/
+    if (ch_current_pass == '') {
+        console.log('Blank');
+        $('#ch_error_current_pass').html('Invalid Current Password');
+        $('#ch_error_current_pass').show();
+        $('#ch_error_new_pass').hide();
+        $('#ch_error_confirm_pass').hide();
+        $("#ch_current_pass").focus();
+        return false;
+    } else if (ch_new_pass == '') {
+        console.log('Blank');
+        $('#ch_error_new_pass').html('Invalid New Password');
+        $('#ch_error_current_pass').hide();
+        $('#ch_error_new_pass').show();
+        $('#ch_error_confirm_pass').hide();
+        $("#ch_new_pass").focus();
+        return false;
+    } else if (ch_confirm_pass == '') {
+        console.log('Blank');
+        $('#ch_error_confirm_pass').html('Invalid Confirm Password');
+        $('#ch_error_current_pass').hide();
+        $('#ch_error_new_pass').hide();
+        $('#ch_error_confirm_pass').show();
+        $("#ch_confirm_pass").focus();
+        return false;
+    } else if (ch_current_pass == ch_new_pass) {
+        console.log('Same');
+        $('#ch_error_confirm_pass').html('Existing and New Password should not be same');
+        $('#ch_error_current_pass').hide();
+        $('#ch_error_new_pass').hide();
+        $('#ch_error_confirm_pass').show();
+        $("#ch_new_pass").focus();
+        return false;
+    } else if (ch_new_pass != ch_confirm_pass) {
+        console.log('Not Match');
+        $('#ch_error_confirm_pass').html('Confirm Password did not match');
+        $('#ch_error_current_pass').hide();
+        $('#ch_error_new_pass').hide();
+        $('#ch_error_confirm_pass').show();
+        $("#ch_confirm_pass").focus();
+        return false;
+    } else {
+        console.log('Success');
+        $('.showBg').show();
+        $('#p_loading').html('<div class="loading">Loading...</div>');
+        $('#change-password').hide();
+        $('#ch_error_current_pass').hide();
+        $('#ch_error_new_pass').hide();
+        $('#ch_error_confirm_pass').hide();
+        var data = $("#change-pass-frm").serialize();
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + 'user/change-password',
+            data: data,
+            success: function (response) {
+                $('#p_loading').html('');
+                obj = $.parseJSON(response);
+                if (obj.status == '200') {
+                    $('#change-password').hide();
+                    //$('#pws-success-msg').html('Your password has been successfully updated');
+                    //$('#pws-success').show();
+
+                    $("#ch_current_pass").val('');
+                    $("#ch_new_pass").val('');
+                    $("#ch_confirm_pass").val('');
+
+                    $('#profile-success-msg').html('Your password has been successfully updated');
+                    $("#profile-success, .showBg").show(0).delay(2000).hide(0);
+                } else {
+                    $('#change-password').hide();
+                    //$('#pws-success-msg').html(obj.message);
+                    //$("#pws-success").show();
+                    $('#profile-success-msg').html(obj.message);
+                    $("#profile-success, .showBg").show(0).delay(2000).hide(0);
+                }
+            }
+        });
+        return false;
+    }
+}
+
+function forgot_pass() {
+
+    $('#forgot-pass-frm, #forgot-pass').show();
+    $('#forgot-pass-msg, #forgot-pass-error').hide();
+    $("#forgot-pass-signup").hide();
+
+    var forgot_pass_email = $("#forgot-pass-email").val();
+
+    var emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+    if ((forgot_pass_email == '') || (forgot_pass_email == 'User Name')) {
+        $('#forgot-pass-error').html('Please enter valid Email Id');
+        $('#forgot-pass-error').show();
+        $("#forgot-pass-email").focus();
+        return false;
+    } else if (emailPattern.test(forgot_pass_email) == false) {
+        $('#forgot-pass-error').html('Please enter valid Email Id');
+        $('#forgot-pass-error').show();
+        $("#forgot-pass-email").focus();
+        return false;
+    } else {
+        console.log('Success');
+        $('.showBg').show();
+        $('#p_loading').html('<div class="loading">Loading...</div>');
+        $('#forgot-pass-msg, #forgot-pass, #forgot-pass-error').hide();
+        var data = $("#forgot-pass-frm").serialize();
+        console.log(data);
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + 'user/forgot-password',
+            data: data,
+            success: function (response) {
+                $('#p_loading').html('');
+                $('body').removeClass('fixed');
+                obj = $.parseJSON(response);
+                if (obj.status == '200') {
+                    $("#forgot-pass-email").val('');
+                    $('#forgot-pass-frm, .forgot-pass-submit').hide();
+                    $('#forgot-pass-msg').html('Link will be sent on below Email ID to reset <br />your password <br /><br /> If you don\'t receive this email, please check your junk mail folder');
+                    $('.showBg, #forgot-pass-msg, #forgot-pass, .forgot-pass-again, .forgot-pass-contact').show(0);//.delay(2000).hide(0);
+                } else if (obj.status == '404') {
+                    $('#forgot-pass-error').html('Sorry, we couldn\'t find that Email ID registered with us.');
+                    $("#forgot-pass-error").show();
+                    $("#forgot-pass-signup").show();
+                    $('.showBg, #forgot-pass').show();
+                } else {
+                    $('#forgot-pass-error').html(obj.message);
+                    $("#forgot-pass-error").show();
+                    $("#forgot-pass-signup").show();
+                    $('.showBg, #forgot-pass').show();
+                }
+            }
+        });
+        return false;
+    }
+}
+
+
+function showMyAccountLinks() {
+    var links = '';
+    var mob_links = '';
+    var status = 0;
+    var user_points = 0;
+    var user_rank = 0;
+    var user_challenge = '';
+    var user_first_name = '';
+    var user_last_name = '';
+    var user_name = '';
+    var user_full_name = '';
+
+    if (hungamaGetCookie('h_profile')) {
+        profile = JSON.parse(hungamaGetCookie('h_profile'));
+        status = profile['status'];
+    }
+    console.log('user status' + status);
+    if (status == 1) {
+        id = profile['userId'];
+        if(profile['firstName']!=null){
+            user_first_name = profile['firstName'];
+        }
+        if(profile['lastName']!=null){
+            user_last_name = profile['lastName'];
+        }
+        if(profile['userName']!=null){
+            user_name = profile['userName'];
+        }
+        
+        user_full_name = user_first_name + ' ' + user_last_name;
+        
+        if (hungamaGetCookie('_hgdl')) {
+            gigya_profile = JSON.parse(hungamaGetCookie('_hgdl'));
+
+            user_rank = gigya_profile['user_rank'];
+            user_challenge = gigya_profile['user_challenge'];
+            lg = '';
+            p_image = '';
+            try {
+                user_challenge = user_challenge.replace(/\+/g, ' ');
+                lg = hungamaGetCookie('_hlog');
+                p_image = gigya_profile.profile_images[lg];
+                $('#logged-text').html('<img src="' + p_image + '" alt="">');
+            } catch (err) {
+                console.log("error occured " + err);
+                ;
+            }
+        }
+
+        if (hungamaGetCookie('_hgpt')) {
+            user_points = hungamaGetCookie('_hgpt');
+
+        }
+
+        var myurls = $('#origin_url').val() + 'user/' + id;
+        var myoriginurl = $('#origin_url').val();
+
+        mob_links += '<div id="myacc-login2" class="fr"><div class="myacc-ttl clearfix1"><a href="javascript:void(0)" class="back"><span class="icon-ic_left_arrow"></span></a><div class="user-name">' + user_full_name + '</div><a id="pajax_a" href="' + myurls + '/settings" class="edit">Edit</a></div><div class="clear"></div><div class="bottom-container clearfix1"><div class="col1-3"><a id="pajax_a" href="' + myurls + '/rewards" title="My Coins"><i class="icon-ic_coins"></i><span class="numbers"  id="my_user_coint">' + user_points + '</span><span class="btmtext">My Coins</span></a></div><div class="col2-3"><a id="pajax_a" href="' + myurls + '/rewards" title="My Badges"><i class="icon-ic_coins"></i><span class="numbers" id="my_user_badges">' + user_challenge + '</span><span class="btmtext">My Badges</span></a></div><div class="col3-3"><a id="pajax_a" href="' + myurls + '/rewards" title="My Ranking"><i class="icon-ic_leaderboard"></i><span class="numbers" id="my_user_rank">' + user_rank + '</span><span class="btmtext">My Ranking</span></a></div></div><ul class="myacc-links"><li><a id="pajax_a" href="' + myurls + '/purchase-history" title="My Plans &amp; Purchase History"><i class="icon-ic_offer"></i> My Plans &amp; Purchase History</a></li><li><a id="pajax_a" href="' + myurls + '/continue-watching/movies" title="Continue Watching"><i class="icon-ic_play"></i> Continue Watching</a></li><li><a id="pajax_a" href="' + myurls + '/watchlist/movies" title="Watchlist"><i class="icon-ic_watchlist"></i> Watchlist</a></li><li><a id="pajax_a" href="' + myurls + '/favourites/song" title="Favourites"><i class="icon-ic_favourite_fill"></i> Favourites</a></li><li><a id="pajax_a" href="' + myurls + '/playlist" title="Playlists"><i class="icon-ic_playlist"></i> Playlists</a></li><li><a id="pajax_a" href="' + myurls + '/followed-artist" title="Followed Artists"><i class="icon-ic_following"></i> Followed Artists</a></li><li><a id="pajax_a" href="' + myurls + '/downloads/music" title="mp3/mp4 Downloads"><i class="icon-ic_download"></i> mp3/mp4 Downloads</a></li><li><a href="javascript:void(0);" onClick="logoutFromHungama();" title="Logout"><i class="icon-ic_logout"></i> Logout</a></li></ul>  </div><div id="myacc-login1"><div class="myacc-ttl clearfix1"><a href="javascript:void(0)" class="clearfix1">' + user_full_name + ' <span class="icon-ic_right_arrow"></span></a></div><div class="clear"></div></div>';
+
+        links = '<div class="myacc-ttl clearfix1"><a id="pajax_a" href="' + myurls + '/settings" title="Settings"><custom id="user_myacc_fullname">' + user_full_name + '</custom><span class="icon-ic_settings"></span><br><em id="user_myacc_name">' + user_name + '</em></a></div><div class="clear"></div><div class="bottom-container clearfix1"><div class="col1-3"><a id="pajax_a" href="' + myurls + '/rewards" title="My Coins" ><i class="icon-ic_coins"></i><span class="numbers"  id="my_user_coint">' + user_points + '</span><span class="btmtext">My Coins</span></a></div><div class="col2-3"><a id="pajax_a" href="' + myurls + '/rewards"  title="My Badges"><i class="icon-ic_coins"></i><span class="numbers" id="my_user_badges">' + user_challenge + '</span><span class="btmtext">My Badges</span></a></div><div class="col3-3"><a id="pajax_a" href="' + myurls + '/rewards"  title="My Ranking"><i class="icon-ic_leaderboard"></i><span class="numbers" id="my_user_rank">' + user_rank + '</span><span class="btmtext">My Ranking</span></a></div></div><ul class="myacc-links"><li><a id="pajax_a" href="' + myurls + '/purchase-history" title="My Plans &amp; Purchase History"><i class="icon-ic_offer"></i> My Plans &amp; Purchase History</a></li><li><a id="pajax_a" href="' + myurls + '/continue-watching/movies" title="Continue Watching"><i class="icon-ic_play"></i> Continue Watching</a></li><li><a id="pajax_a" href="' + myurls + '/watchlist/movies" title="Watchlist"><i class="icon-ic_watchlist"></i> Watchlist</a></li><li><a id="pajax_a" href="' + myurls + '/favourites/song" title="Favourites"><i class="icon-ic_favourite_fill"></i> Favourites</a></li><li><a id="pajax_a" href="' + myurls + '/playlist" title="Playlists"><i class="icon-ic_playlist"></i> Playlists</a></li><li><a id="pajax_a" href="' + myurls + '/followed-artist" title="Followed Artists"><i class="icon-ic_following"></i> Followed Artists</a></li><li><a id="pajax_a" href="' + myurls + '/downloads/music" title="mp3/mp4 Downloads"><i class="icon-ic_download"></i> mp3/mp4 Downloads</a></li><li><a href="javascript:void(0);" onClick="logoutFromHungama();" title="Logout"><i class="icon-ic_logout"></i> Logout</a></li></ul>';
+
+        $('#myacc-dropdown').addClass('arrow_box');
+
+        $("#my_user_coint").html(user_points);
+        $("#my_user_rank").html(user_rank);
+        $("#my_user_badges").html(unescape(user_challenge));
+
+    } else {
+        mob_links += '<div class="profile clearfix1"><div class="fl"><i class="icon-ic_user"></i></div><div class="logindetails"><p>Hi Guest</p><div class="btn-wrapper"><a href="javascript:void(0);" class="btn-sub mob-login" onClick="hidemenu();showLoginPopupLarge();" title="Login">Login</a><a href="javascript:void(0);" class="btn-sub" onClick="hidemenu();showRegisterPopupLarge();" title="Register">Register</a></div></div></div>';
+        $('#logged-text').html('<img src="' + $('#site_url').val() + 'assets/images/profile-img1.png" alt="">');
+        $('#myacc-dropdown').removeClass('arrow_box');
+    }
+    $('#myacc-dropdown').hide();
+    $('#myacc-dropdown').html(links);
+    $('#profile_menu').html(mob_links);
+}
+
+function showGigyaLoginUI(id) {
+    gigya.socialize.showLoginUI({
+        showTermsLink: 'false',
+        height: 35,
+        width: 355,
+        containerID: id,
+        buttonsStyle: 'standard',
+        autoDetectUserProviders: '',
+        facepilePosition: 'none',
+        enabledProviders: 'facebook,google'
+    });
+
+    $(id).css("margin", "0 auto");
+}
+
+function customSocialLogin(provider) {
+    var params = {
+        provider: provider,
+        callback: onLoginHandler
+    };
+    gigya.socialize.login(params);
+}
+
+function setUserData() {
+    console.log('setUserData');
+
+    var origin_url = $('#origin_url').val();
+
+    url = origin_url + 'index.php?c=user&m=userrds';
+
+    $.ajax({
+        type: 'POST',
+        url: url,
+        success: function (result) {
+            //checkLoggedInStatus();
+
+            var response = JSON.parse(result);
+            if (response.status == 'yes') {
+                console.log("yes");
+                $('#user_fav_data').val(response.fav_data);
+                $('#user_watchlist_data').val(response.watchlist_data);
+                $('#user_artist_followed_data').val(response.artist_followed_data);
+                $('#user_notify_me').val(response.user_notifyme);
+
+                var index, content_id;
+                var a = response.watchlist_data;
+                for (index = 0; index < a.length; ++index) {
+                    content_id = a[index];
+                    if ($("#movie_id_" + content_id).length) {
+                        $("#movie_id_" + content_id).removeClass('icon-ic_watchlist_add');
+                        $("#movie_id_" + content_id).addClass('icon-ic_watchlist');
+                    }
+                    console.log("consum length : " + $("#movie_consumption_" + content_id).length);
+                    if ($("#movie_consumption_" + content_id).length) {
+                        $("#movie_consumption_" + content_id).removeClass('icon-ic_watchlist_add');
+                        $("#movie_consumption_" + content_id).addClass('icon-ic_watchlist');
+                    }
+                }
+
+                var j, artist_id;
+                var b = response.artist_followed_data;
+                for (j = 0; j < b.length; ++j) {
+                    artist_id = b[j];
+                    if ($("#artist_id_" + artist_id).length) {
+                        console.log("artist_id_" + artist_id + '   --- element exists');
+                        $("[id=artist_id_" + artist_id + "]").removeClass('icon-ic_fallow');
+                        $("[id=artist_id_" + artist_id + "]").addClass('icon-ic_following');
+                    }
+                    if ($("#artist_consumption_" + artist_id).length) {
+                        $("#artist_consumption_" + artist_id).removeClass('icon-ic_fallow');
+                        $("#artist_consumption_" + artist_id).addClass('icon-ic_following');
+                    }
+
+                }
+
+                var k, fav_id;
+                var user_fav = response.fav_data;
+                console.log("user_fav : " + user_fav);
+                user_fav = user_fav.replace(/[^0-9,]/g, '');
+
+                var fav_array = user_fav.split(',');
+                for (k = 0; k < fav_array.length; ++k) {
+                    fav_id = fav_array[k];
+                    if (fav_id > 0) {
+                        $("#fav_consumption_" + fav_id).removeClass('icon-ic_favourite');
+                        $("#fav_consumption_" + fav_id).addClass('icon-ic_favourite_fill');
+                        $(".jw_favourite .icon-ic_favourite_1-46").addClass("actfev");
+
+                    }
+                }
+
+                notifyme_data = $('#user_notify_me').val();
+                arrNotifyData = notifyme_data.split(',');
+                for (i = 0; i < arrNotifyData.length; ++i) {
+                    if ($("#notifyme_" + arrNotifyData[i]).length) {
+                        $("#notifyme_" + arrNotifyData[i]).hide();
+                        $("#un_notifyme_" + arrNotifyData[i]).show();
+                    }
+                }
+
+            } else {
+                console.log("no");
+                $('#user_fav_data').val(response.fav_data);
+                $('#user_watchlist_data').val(response.watchlist_data);
+                $('#user_artist_followed_data').val(response.artist_followed_data);
+                $('#user_notify_me').val(response.user_notifyme);
+            }
+        }
+    });
+}
+
+function update_name() {
+    var u_name = $("#uname").val();
+
+    if (u_name == '') {
+        $('#uname').focus();
+        $('#profile-success-msg').html('Please Enter Name');
+        $(".showBg, #profile-success").show(0).delay(1000).hide(0);
+        return false;
+    } else {
+        $(".showBg").show();
+        $('#p_loading').html('<div class="loading">Loading...</div>');
+        console.log($("#profile_email_frm").serialize());
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + 'user/profile',
+            data: {'name': u_name},
+            success: function (response) {
+                console.log(response);
+                $('#p_loading').html('');
+                obj = $.parseJSON(response);
+                if (obj.status == '200') {
+                    $("#u_name").html(u_name);
+                    $("#uname").val('');
+                    $('#uname').focusout();
+                    $('#profile-success-msg').html('Name Updated Successfully');
+                    $("#update-email").hide();
+                    $('#p_loading').html('');
+                    $(".showBg, #profile-success").show(0).delay(2000).hide(0);
+                    getSettings();
+                } else if (obj.status == '400') {
+                    $('#profile-success-msg').html('Sorry, we couldn\'t update your Name.');
+                    $("#update-email").hide();
+                    $(".showBg, #profile-success").show(0).delay(2000).hide(0);
+                    setTimeout(function () {
+                        $(".showBg, #update-email").show();
+                    }, 2000);
+                } else {
+                    $('#profile-success-msg').html(obj.message);
+                    $("#update-email").hide();
+                    $(".showBg, #profile-success").show(0).delay(2000).hide(0);
+                    setTimeout(function () {
+                        $(".showBg, #update-email").show();
+                    }, 2000);
+                }
+            }
+        });
+    }
+}
+
+function update_email() {
+    var forgot_pass_email = $("#profile_email").val();
+
+    var emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+    if ((forgot_pass_email == '') || (forgot_pass_email == 'User Name')) {
+        $('#profile_email_error').html('Invalid Email address');
+        $('#profile_email_error').show();
+        $("#profile_email").focus();
+        return false;
+    } else if (emailPattern.test(forgot_pass_email) == false) {
+        $('#profile_email_error').html('Invalid Email address');
+        $('#profile_email_error').show();
+        $("#profile_email").focus();
+        return false;
+    } else {
+        $(".showBg").show();
+        $('#p_loading').html('<div class="loading">Loading...</div>');
+        $("#update-email").hide();
+        $('#profile_email_error').html('');
+        $('#profile_email_error').hide();
+        console.log($("#profile_email_frm").serialize());
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + 'user/profile',
+            data: $("#profile_email_frm").serialize(),
+            success: function (response) {
+                console.log(response);
+                $('#p_loading').html('');
+                obj = $.parseJSON(response);
+                if (obj.status == '200') {
+                    $("#profile_email").val('');
+                    $('#profile-success-msg').html('Email Id Updated Successfully');
+                    $(".showBg, #profile-success").show(0).delay(2000).hide(0);
+                    getSettings();
+                } else if (obj.status == '400') {
+                    $('#profile-success-msg').html('Email Id already Exist. Sorry, we couldn\'t update your Email.');
+                    $(".showBg, #profile-success").show(0).delay(2000).hide(0);
+                    setTimeout(function () {
+                        $(".showBg, #update-email").show();
+                    }, 2000);
+                } else {
+                    $('#profile-success-msg').html(obj.message);
+                    $(".showBg, #profile-success").show(0).delay(2000).hide(0);
+                    setTimeout(function () {
+                        $(".showBg, #update-email").show();
+                    }, 2000);
+                }
+            }
+        });
+    }
+}
+
+function h_notify(type) {
+    console.log('h_notify : ' + type);
+
+    if(type == 'l' || type == 'r') {
+    	cm_Init();
+    }
+    var origin_url = $('#origin_url').val();
+    url = origin_url + 'index.php?c=login&m=notify';
+
+    dataToSend = {
+        'type': type
+    };
+
+    $.ajax({
+        type: 'POST',
+        url: url,
+        success: function (response) {
+            loginTextShowHide();
+			
+		
+			var form_to_submit = '#login-signin ';
+			var user_action = $(form_to_submit + "#user_action").val();
+			var content_id = $(form_to_submit + "#content_id").val();
+			var content_title = $(form_to_submit + "#content_title").val();
+			var content_type = $(form_to_submit + "#content_type").val();
+			
+			if(user_action == 'user_download'){
+						
+				user.downloadContent({content_id:content_id, content_type:content_type, content_title:content_title});
+			}
+			
+            /*console.log(response);
+             obj = $parseJSON(response);
+             if (obj.status == 200) {
+             console.log('setUserData'.obj.status);
+             }else{
+             console.log('setUserData'.obj.status);
+             }*/
+        }
+    });
+}
+
+function availability(username) {
+	var form_to_submit = '';
+
+    if ($('#registerPop').css('display') == 'block') {
+        console.log('registerPop');
+        var form_to_submit = '#registerPop ';
+    }
+    if ($('#login-signup').css('display') == 'block') {
+        console.log('login-signup');
+        var form_to_submit = '#login-signup ';
+    }
+    console.log('availability : ' + username);
+    $(form_to_submit + '#reg-error-email').css('color', '#f83d29');
+    var emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+
+    if ((username == '') || (username == 'Email Address')) {
+        $(form_to_submit + '#reg-error-email').html('Sorry, please enter valid Email ID');
+        $(form_to_submit + '#reg-error-name').hide();
+        $(form_to_submit + '#reg-error-email').show();
+        $(form_to_submit + '#reg-error-pass').hide();
+        $(form_to_submit + '#reg-error-conf').hide();
+        $(form_to_submit + "#regEmail").focus();
+        return false;
+    } else if (emailPattern.test(username) == false) {
+        $(form_to_submit + '#reg-error-email').html('Sorry, please enter valid Email ID');
+        $(form_to_submit + '#reg-error-name').hide();
+        $(form_to_submit + '#reg-error-email').show();
+        $(form_to_submit + '#reg-error-pass').hide();
+        $(form_to_submit + '#reg-error-conf').hide();
+        $(form_to_submit + "#regEmail").focus();
+        return false;
+    } else {
+        $(form_to_submit + '#reg-error-email').html('Checking Email Id availability...');
+        $(form_to_submit + '#reg-error-email').show();
+
+        var origin_url = $('#origin_url').val();
+        url = origin_url + 'index.php?c=login&m=availability';
+
+        dataToSend = {
+            'username': username
+        };
+
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: dataToSend,
+            success: function (response) {
+
+                console.log(response);
+                obj = JSON.parse(response);
+                console.log(obj);
+                if (obj.status == 200) {
+                    $(form_to_submit + '#reg-error-email').html('Email Id is available.');
+                    $(form_to_submit + '#reg-error-email').css('color', 'green');
+                    $(form_to_submit + '#reg-error-email').show();
+                } else {
+                    $(form_to_submit + '#reg-error-email').html('Email ID already present');
+                    $(form_to_submit + '#reg-error-email').show();
+                }
+            }
+        });
+    }
+}

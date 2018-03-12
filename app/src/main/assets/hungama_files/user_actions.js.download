@@ -1,0 +1,1030 @@
+
+// user arjun.patil
+// created 23-08-2016
+
+var user = {
+    clickTest: function () {
+        alert('aa aa  aa  a');
+    },
+    userFavouriteAction: function (params) {
+        console.log('UserFavouriteAction called..');
+        var player_fav_class = $("#hpjw_fav").attr('class'); 
+        console.log("class of hpjw_fav is: " +player_fav_class); 
+        if( player_fav_class == 'icon-ic_favourite_1-46 actfev'){
+          console.log('favourite'); 
+        } else {
+          console.log('unfav'); 
+        }
+        if ($('#fav_consumption_' + params.content_id).hasClass("icon-ic_favourite")) {
+            user.addToMyFavourite({content_id: params.content_id, content_type: params.content_type, content_title: params.content_title});
+        } else {
+            user.removeFromMyFavourite({content_id: params.content_id, content_type: params.content_type, content_title: params.content_title});
+        }
+    },
+    
+    addToMyFavourite: function (params) {
+        $(".overlay_wrapper").hide();
+        var successHtml = '';
+        if (params.content_type == 'song') {
+            var successHtml = '<p>' + params.content_title + ' added to Your Favourites</p>';
+        } else if (params.content_type == 'album') {
+            var successHtml = '<p>' + params.content_title + ' added to Your Favourites</p>';
+        } else if (params.content_type == 'videos') {
+            var successHtml = '<p>' + params.content_title + ' added to Your Favourites</p>';
+        } else if (params.content_type == 'song_playlist') {
+            var successHtml = '<p>' + params.content_title + ' added to Your Favourites</p>';
+        } else if (params.content_type == 'radio') {
+            var successHtml = '<p>' + params.content_title + ' added to Your Favourites</p>';
+        } else {
+            var successHtml = '<p>' + params.content_title + ' added to Your Favourites</p>';
+        }
+        console.log("Success Msg : " + successHtml);
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + "user/loggedin-status",
+            success: function (result) {
+                var response = JSON.parse(result);
+                if (response.status == 'yes') {
+                    console.log(' Success Msg : '+successHtml);
+                    messageShowpopup(successHtml);
+                    $.ajax({
+                        type: 'POST',
+                        url: $('#origin_url').val() + "user-favourite",
+                        data: {
+                            content_id: params.content_id,
+                            content_type: params.content_type,
+                            content_title: params.content_title
+                        },
+                        success: function (result) {
+//                            messageShowpopup(successHtml);
+                            var response = JSON.parse(result);
+                            if (response.status == 'yes') {
+                                var category = $("#category").val(); 
+                                if(category != '') {
+                                  setUserConsumption(category,params.content_id,'add');
+                                }
+                                $(".threedotshr").hide();
+                                //$('#user_ln_status').val('yes');
+                                $('#user_fav_data').val(response.fav_data);                               
+
+                                fav_array = response.fav_data;
+                                fav_array = JSON.parse(fav_array);
+                                fav_array_count = fav_array.length;
+                                $('#hungama_ap .icon-ic_favourite_1-46').removeClass('player_fav_item');
+                                $('#hungama_ap .icon-ic_favourite_1-46').removeClass('icon-ic_favourite_fill');
+
+                                for (p = 0; p < fav_array_count; p++) {
+                                    if (fav_array[p] == params.content_id) {
+                                        //$('#hungama_ap .icon-ic_favourite_1-46').addClass('player_fav_item');
+                                        //$('#hungama_ap .icon-ic_favourite_1-46').addClass('icon-ic_favourite_fill');
+                                        $('#page_fav_'+params.content_id).removeClass('icon-ic_favourite');
+                                        $('#page_fav_'+params.content_id).addClass('icon-ic_favourite_fill');
+                                        $('#fav_consumption_'+params.content_id).removeClass('icon-ic_favourite');
+                                        $('#fav_consumption_'+params.content_id).addClass('icon-ic_favourite_fill');
+										$('#hap_'+params.content_id).addClass('player_fav_item').addClass('icon-ic_favourite_fill');
+                                    }
+                                }
+                                //showPopup("", successHtml);
+//                                messageShowpopup(successHtml);
+
+                                //call to gigya user actions for favorite
+                                user_action_point('favorite', params.content_id, params.content_type);
+                                if(params.content_type == 'song' || params.content_type == 'videos' || params.content_type == 'album') {
+                                	cm_mediaEvent('user-favorite', params);
+                                } else {
+                                	cm_appEvent('user-favorite', params);
+                                }
+                                
+
+                            } else if (response.status == 'login_fail') {
+                                $('#user_action').val('user_favourite');
+                                $('#content_type').val(params.content_type);
+                                $('#content_id').val(params.content_id);
+                                $('#user_msg').val(successHtml);
+                                showLoginPopup();
+                            } else {
+//                                showPopup("", "Error occured");
+//                                messageShowpopup("Error occured");
+                            }
+                            loginTextShowHide();
+                        }
+                    });
+                } else {
+                    $('#user_action').val('user_favourite');
+                    $('#content_type').val(params.content_type);
+                    $('#content_id').val(params.content_id);
+                    $('#user_msg').val(successHtml);
+                    showLoginPopup();
+                }
+                loginTextShowHide();
+            }
+        })
+    },
+    removeFromMyFavourite: function (params) {
+        $(".overlay_wrapper").hide();
+        //var successHtml = '<p>' + params.content_title + ' removed from Your Favourites</p>';
+        var successHtml = '<p> Favourites removed successfully</p>';
+        $('#fav_consumption_'+params.content_id).addClass('icon-ic_favourite');
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + "user/loggedin-status",
+            success: function (result) {
+                var response = JSON.parse(result);
+                if (response.status == 'yes') {
+                    $.ajax({
+                        type: 'POST',
+                        url: $('#origin_url').val() + "user-unfavourite",
+                        data: {content_id: params.content_id, content_type: params.content_type},
+                        success: function (result) {
+                            var response = JSON.parse(result);
+                            if (response.status == 'yes') {
+                                var category = $("#category").val();
+                                if(category != '') {
+                                  setUserConsumption(category,params.content_id,'remove');
+                                }
+                                $(".threedotshr").hide();
+                                if ($("#myacc_song_fav_row_" + params.content_id).length) {
+                                    $("#myacc_song_fav_row_" + params.content_id).hide();
+                                }
+                                if ($("#myacc_album_fav_row_" + params.content_id).length) {
+                                    $("#myacc_album_fav_row_" + params.content_id).hide();
+                                }
+                                if ($("#myacc_radio_fav_row_" + params.content_id).length) {
+                                    $("#myacc_radio_fav_row_" + params.content_id).hide();
+                                }
+                                if ($("#myacc_playlist_fav_row_" + params.content_id).length) {
+                                    $("#myacc_playlist_fav_row_" + params.content_id).hide();
+                                }
+                                if ($("#myacc_video_fav_row_" + params.content_id).length) {
+                                    $("#myacc_video_fav_row_" + params.content_id).hide();
+                                }
+                                if ($("#myacc_videoplaylist_fav_row_" + params.content_id).length) {
+                                    $("#myacc_videoplaylist_fav_row_" + params.content_id).hide();
+                                }
+                                //$('#user_ln_status').val('yes');
+                                $('#user_fav_data').val(response.fav_data);                                
+
+                                fav_array = response.fav_data;
+                                fav_array = JSON.parse(fav_array);
+                                fav_array_count = fav_array.length;
+                                //$('#hungama_ap .icon-ic_favourite_1-46').removeClass('player_fav_item');
+                                //$('#hungama_ap .icon-ic_favourite_1-46').removeClass('icon-ic_favourite_fill');
+                                $('#page_fav_'+params.content_id).removeClass('icon-ic_favourite_fill');
+                                $('#page_fav_'+params.content_id).addClass('icon-ic_favourite');
+                                
+                                $('#fav_consumption_'+params.content_id).removeClass('icon-ic_favourite_fill');
+								$('#hap_'+params.content_id).removeClass('player_fav_item').removeClass('icon-ic_favourite_fill');
+                                
+                                //showPopup("", successHtml);
+                                messageShowpopup(successHtml);
+                            } else if (response.status == 'login_fail') { 
+                                showLoginPopup();
+                            } else {
+                                messageShowpopup("Error occured");
+                            }
+                            loginTextShowHide();
+                        }
+                    });
+                } else {
+                    showLoginPopup();
+                }
+                loginTextShowHide();
+            }
+        })
+    },
+    downloadContent: function (params) {
+        var successHtml = params.content_title + ' will start downloading now';
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + "user/loggedin-status",
+            success: function (result) {
+                var response = JSON.parse(result);
+                if (response.status == 'yes') {
+                    $.ajax({
+                        type: 'POST',
+                        url: $('#origin_url').val() + "user/downloads",
+                        data: {content_id: params.content_id, content_type: params.content_type},
+                        success: function (result1) {
+                            var response = JSON.parse(result1);
+                            if (response.status == 'done') {
+
+                                data = response.file_path;
+                                if (data != '' && data != null) {
+
+                                    //call to gigya user actions for download
+                                    user_action_point('downloaded', params.content_id, params.content_type);
+									var successHtml = response.content_title + ' will start downloading now';
+									 jw_ga_params = {'contenttype': params.content_type, 'content_title': response.content_title, 'content_id': params.content_id};
+                                     jw_events('download', jw_ga_params);
+                                     get_details_for_tracking(params.content_id, params.content_type);
+                                     window.open(data, "_parent", '', '');
+                                   
+                                    $('#profile-success-msg').html(successHtml);
+                                    $('.showBg, #profile-success').show(0).delay(3000).hide(0);
+
+
+                                } else {
+                                    //showPopup("", "Sorry, download file not available for this video");
+                                    $('#profile-success-msg').html('Sorry, download file not available for this video!!');
+                                    $('.showBg, #profile-success').show(0).delay(3000).hide(0);
+
+                                }
+                            } else if(response.status=='fail') {
+								$('#gtmp_title').html(response.content_disp);
+                                $('#getmp3pop').html(response.disp_message);
+                                $('#getmp3, .showBg').show();
+                                $('body').addClass('popfixed');
+                                var a = $('#getmp3').height() / 2;
+                                $('#getmp3').css('margin-top', -a);
+
+                                //$('#profile-success-msg').html(response.disp_message);
+                                //$('.showBg, #profile-success').show(0).delay(3000).hide(0);
+                                //showPopup("",response.disp_message);
+                            }else if(response.status=='over'){	
+								//showPopup("",response.disp_message);
+								$('#profile-success-msg').html(response.disp_message);
+                                $('.showBg, #profile-success').show(0).delay(3000).hide(0);
+                                
+								
+							}
+                        }
+                    });
+                } else {
+                    $('#user_action').val('user_download');
+                    $('#content_id').val(params.content_id);
+                    $('#content_type').val(params.content_type);
+                    $('#user_msg').val(successHtml);
+                    showLoginPopup();
+                }
+                loginTextShowHide();
+            }
+        });
+    },
+    addToMyPlaylist: function (params) {
+        var successHtml = '<p>' + params.content_title + ' added to Your playlist successfully</p>';
+        $('#adp_content_id').val(params.content_id);
+        $('#adp_content_title').val(params.content_title);
+        $('#adp_content_type').val(params.content_type);
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + "user/loggedin-status",
+            success: function (result) {
+                var response = JSON.parse(result);
+                if (response.status == 'yes') {
+                    $('#create-playlist, .showBg').show();
+                    user.getUserPlaylist({content_id: params.content_id, content_title: params.content_title, content_type: params.content_type,flag:1});
+                } else {
+                    $('#user_action').val('user_addtomyplaylist');
+                    $('#content_id').val(params.content_id);
+                    $('#content_title').val(params.content_title);
+                    $('#content_type').val(params.content_type);
+                    $('#user_msg').val(successHtml);
+                    showLoginPopup();
+                }
+                loginTextShowHide();
+            }
+        });
+    },
+
+    getUserPlaylist : function(params) {
+        $('#uplaylist').hide();
+        $('#myplaylist').html('');
+        var content_id = params.content_id;
+        var content_title = params.content_title;
+        var content_type = params.content_type;
+        var flag = 1; //for not fetching playlist details
+	var has_playlist = false;
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + 'user/playlists',
+            data: {content_type: params.content_type,flag : 1},
+            success: function (response) {
+                var data = JSON.parse(response);
+                var myList = $('#myplaylist');
+                for (var i = 0; i < data.playlist.length; i++) {
+                    if (data.playlist[i]['title'] != '') {
+                        var id = data.playlist[i]['id'];
+                        var addToPlaylistFunc = "user.addtoPlaylist({content_id:'" + content_id + "', content_type:'" + content_type + "', content_title:'" + content_title + "', playlist_id:'" + id + "'});";
+                        myList.append('<li><a class="clearfix1" href="javascript:void(0);" onClick="' + addToPlaylistFunc + '"> <em>' + data.playlist[i]['title'] + '<span> ' + data.playlist[i]['noOfTracks'] + ' Songs</span></em><i class="icon-ic_add"></i></a></li>');
+
+			has_playlist = true;
+                    }
+                }
+		if(has_playlist){
+			$('#uplaylist').show();
+		}
+            }
+        });
+    },
+    addtoPlaylist: function (params) {
+        //var successHtml = '<p>'+params.content_title+' added to my playlist successfully</p>';
+        if(params.content_type == 'videos'){
+            var successHtml = 'Video added to playlist';    
+        } else {
+            var successHtml = 'song(s) added to playlist';
+        }
+        //var successHtml1 = '<p>'+params.content_title+' Already added into playlist</p>';
+        var successHtml1 = ' Song(s) already exist';
+        $.ajax({
+            type: 'POST',
+            //url: $('#site_url').val()+'index.php?c=user&m=addtoPlaylist',
+            url: $('#origin_url').val() + 'user/addtomyplaylist',
+            data: {playlist_id: params.playlist_id, content_type: params.content_type, content_id: params.content_id},
+            success: function (response) {
+                $('#create-playlist, .showBg').hide();
+                var response = response.trim();
+                if (response == 'success') {
+                    messageShowpopup(successHtml);
+                    user.getUserPlaylist({
+                        content_id: params.content_id,
+                        content_type: params.content_type,
+                        content_title: params.content_title,
+                        flag: 1
+                    });
+                } else if (response == 'exist') {
+                    messageShowpopup(successHtml1);
+                } else {
+                    messageShowpopup('Error occured ');
+                }
+            }
+        });
+    },
+    createPlaylist: function () {
+        var content_id = $('#adp_content_id').val();
+        var content_title = $('#adp_content_title').val();
+        var content_type = $('#adp_content_type').val();
+        var name = $("#playlist_name").val();
+        var data = $("#createPlaylistFrm").serialize();
+		var valid_name = /^[A-Za-z0-9\ \-\_]{3,20}$/;
+        if(content_type == 'videos' || content_type == 'video_playlist'){
+            var successHtml = 'Video added to playlist';    
+        } else {
+            var successHtml = 'song(s) added to playlist';
+        }
+		
+        if(!valid_name.test(name)){
+			$('#playlist_name').focus();
+            //messageShowpopup('Please enter valid Name for your Playlist');
+			$('#playlist_name_err').html('Playlist name should contain Alphabets, digits, -, _ and space between 3 to 20 characters.');
+			$('#playlist_name_err').show();
+		}else{
+			$('.savebtn').attr('onclick', '');
+			$('#create-playlist').hide();
+			$('#playlist_name_err').hide();
+			$('#p_loading').html('<div class="loading">Loading...</div>');
+            $.ajax({
+                type: 'POST',
+                url: $('#origin_url').val() + 'user/create-playlist',
+                data: data,
+                success: function (response) {
+                    var response = response.trim();
+                    if (response == 'success') {
+                        $('#p_loading').html('');
+                        $("#create-playlist").hide();
+                        //messageShowpopup('Playlist Created ...');
+                        messageShowpopup(successHtml);
+                        $('#myplaylist').html('');
+                        $('#playlist_name').val('');
+                        //call to gigya user actions for create playlist
+                        user_action_point('create_playlist', content_id, 'music');
+                        user.getUserPlaylist({
+                            content_id: content_id,
+                            content_type: content_type,
+                            content_title: content_title,
+                            flag: 1
+                        });
+
+                    } else if (response == 'exist') {
+                        //showPopup("", "Playlist Name already exists Please enter different name");
+                        messageShowpopup('Playlist with same name exist ...');
+                    } else {
+                        //showPopup("", "Error occured while playlist creation");
+                        messageShowpopup('Error occured while playlist creation ...');
+                    }
+                }
+            });
+			setTimeout(function(){
+				$('.savebtn').attr('onclick', 'user.createPlaylist();')
+			}, 2000);
+        }
+    },
+    userContinueWatchlistAction: function (params) {
+        if ($('#movie_continue_watchlist_' + params.content_id).hasClass("icon-ic_watchlist_add")) {
+            user.addToMyWatchlist({content_id: params.content_id, content_type: params.content_type, content_title: params.content_title});
+        } else {
+            user.removeFromMyWatchlist({content_id: params.content_id, content_type: params.content_type, content_title: params.content_title});
+        }
+    },
+    userConsumptionWatchlistAction: function (params) {
+        if ($('#movie_consumption_' + params.content_id).hasClass("icon-ic_watchlist_add")) {
+            user.addToMyWatchlist({content_id: params.content_id, content_type: params.content_type, content_title: params.content_title});
+        } else {
+            user.removeFromMyWatchlist({content_id: params.content_id, content_type: params.content_type, content_title: params.content_title});
+        }
+    },
+    userWatchlistAction: function (params) {
+        if ($('#movie_id_' + params.content_id).hasClass("icon-ic_watchlist_add")) {
+            user.addToMyWatchlist({content_id: params.content_id, content_type: params.content_type, content_title: params.content_title});
+        } else {
+            user.removeFromMyWatchlist({content_id: params.content_id, content_type: params.content_type, content_title: params.content_title});
+        }
+    },
+    addToMyWatchlist: function (params) {
+        var successHtml = '<p>' + params.content_title + ' Added To your Watchlist successfully</p>';     
+		if (hungamaGetCookie('h_profile')) {
+			profile = JSON.parse(hungamaGetCookie('h_profile'));
+			status = profile['status'];
+			
+			if(status == 1){
+				$("#movie_id_" + params.content_id).removeClass('icon-ic_watchlist_add');
+				$("#movie_id_" + params.content_id).addClass('icon-ic_watchlist');
+			}
+		}
+        
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + "user/loggedin-status",
+            success: function (result) {
+                var response = JSON.parse(result);
+                if (response.status == 'yes') {
+                    $.ajax({
+                        type: 'POST',
+                        url: $('#origin_url').val() + "user/addtomywatchlist",
+                        data: {content_id: params.content_id, content_type: params.content_type},
+                        success: function (result) {
+                            status = result.trim();
+                            console.log(status); 
+                            console.log(params.content_id);                                                    
+                            console.log('added to watchlist'+("#movie_id_"+params.content_id));
+                            if (status == 'done') {
+                                messageShowpopup('Added To Your Watchlist successfully');
+								
+								var category = $("#category").val(); 
+								if(category != '') {
+								  setUserConsumption(category,params.content_id,'add');
+								}								
+                         
+                                var content_id = params.content_id;
+                               /* if ($("#movie_id_" + content_id).length) {
+                                    if ($('#movie_id_' + content_id).hasClass('icon-ic_watchlist_add')) {                                        
+                                        $("#movie_id_" + content_id).removeClass('icon-ic_watchlist_add');
+                                        $("#movie_id_" + content_id).addClass('icon-ic_watchlist');
+                                    } else {
+                                        $("#movie_id_" + content_id).removeClass('icon-ic_watchlist');
+                                        $("#movie_id_" + content_id).addClass('icon-ic_watchlist_add');                                        
+                                    }
+                                } else {
+                                    console.log("movie_id_" + content_id + '   --- element Not exists');
+                                }*/
+                                //showPopup("", successHtml);
+                                messageShowpopup(successHtml);
+                                cm_mediaEvent('user-watchlist', params);
+                            } else if (status == 'login_fail') {
+                                showLoginPopup();
+                            } else {
+                                //showPopup("", "The content couldn't be added");
+                                messageShowpopup("The content couldn't be added");
+                            }
+                            loginTextShowHide();
+                        }
+                    });
+                } else {
+                    $('#user_action').val('user_mywatchlist');
+                    $('#content_id').val(params.content_id);
+                    $('#content_type').val(params.content_type);
+                    $('#content_title').val(params.content_title);
+                    $('#user_msg').val(successHtml);
+                    showLoginPopup();
+                }
+                loginTextShowHide();
+            }
+        });
+    },
+    removeFromMyWatchlist: function (params) {
+        var successHtml = '<p>' + params.content_title + ' Removed From Your Watchlist successfully</p>';
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + "user/loggedin-status",
+            success: function (result) {
+                var response = JSON.parse(result);
+                if (response.status == 'yes') {
+                    $.ajax({
+                        type: 'POST',
+                        url: $('#origin_url').val() + "user/removefrommywatchlist",
+                        data: {content_id: params.content_id, content_type: params.content_type},
+                        success: function (result) {
+                            status = result.trim();
+                            if (status == 'done') {
+                                //pjaxLoadURL($('#origin_url').val() + "user/my-playlist");
+                                var page = $("#page").val();                                
+                                var category = $("#category").val();
+                                if(category != '') {
+                                  setUserConsumption(category,params.content_id,'remove');
+                                }
+                               
+                                $("#movie_consumption_" + params.content_id).removeClass('icon-ic_watchlist');
+                                $("#movie_consumption_" + params.content_id).addClass('icon-ic_watchlist_add');
+                                $("#movie_id_" + params.content_id).removeClass('icon-ic_watchlist');
+                                $("#movie_id_" + params.content_id).addClass('icon-ic_watchlist_add');    
+                                
+                                messageShowpopup(successHtml);
+                                console.log('watchlist pjax load');
+                                if(page == 'my_watchlist'){
+                                    pjaxLoadURL($('#origin_url').val() + "user/my-watchlist");
+                                }
+                                var content_id = params.content_id;
+                                if ($("#movie_id_" + content_id).length) {
+                                    $("#movie_id_" + content_id).removeClass('icon-ic_watchlist');
+                                    $("#movie_id_" + content_id).addClass('icon-ic_watchlist_add');                                   
+                                                                       
+                                } else {
+                                    console.log("movie_id_" + content_id + '   --- Not element exists');
+                                }
+                            } else if (status == 'login_fail') {
+                                showLoginPopup();
+                            } else {
+//                                showPopup("", "The content couldn't be removed");
+                                    showPopup("", "The content couldn't be removed");
+                            }
+                            loginTextShowHide();
+                        }
+                    });
+                } else {
+                    showLoginPopup();
+                }
+                loginTextShowHide();
+            }
+        });
+    },
+    userArtistFollowedAction: function (params) {
+        if ($('#artist_id_' + params.content_id).hasClass("icon-ic_fallow")) {
+            user.addToMyArtistFollowed({content_id: params.content_id, content_type: params.content_type, content_title: params.content_title});
+        } else {
+            user.removeFromMyArtistfollowed({content_id: params.content_id, content_type: params.content_type, content_title: params.content_title});
+        }
+    },
+    userArtistFollowedActionConsumption: function (params) {
+        if ($('#artist_consumption_' + params.content_id).hasClass("icon-ic_fallow")) {
+            user.addToMyArtistFollowedDetails({content_id: params.content_id, content_type: params.content_type, content_title: params.content_title});
+        } else {
+            user.removeFromMyArtistfollowedDetails({content_id: params.content_id, content_type: params.content_type, content_title: params.content_title});
+        }
+    },
+    userArtistFollowedActionDetails: function (params) {
+        var test = $(this).attr('class');
+        if ($('#artist_id_' + params.content_id).hasClass("artistFollow")) {
+            user.addToMyArtistFollowedDetails({content_id: params.content_id, content_type: params.content_type, content_title: params.content_title});
+        } else {
+            user.removeFromMyArtistfollowedDetails({content_id: params.content_id, content_type: params.content_type, content_title: params.content_title});
+        }
+    },
+    addToMyArtistFollowedDetails: function (params) {
+        var successHtml = '<p>' + params.content_title + ' added to your following list</p>';
+        //var loggedin_status = $('#user_ln_status').val();
+        if (hungamaGetCookie('h_profile')) {
+            cookie_details = JSON.parse(hungamaGetCookie('h_profile'));
+            loggedin_status = cookie_details['status'];
+        }
+        if (loggedin_status == 1) {
+            $.ajax({
+                type: 'POST',
+                url: $('#origin_url').val() + "user/addtomyartistfollowed",
+                data: {content_id: params.content_id, content_type: params.content_type},
+                success: function (result) {
+                    status = result.trim();
+                    if (status == 'done') {
+                        messageShowpopup(successHtml);
+                        var category = $("#category").val();
+                        if(category != '') {
+                            setUserConsumption(category,params.content_id,'add');
+                        }
+                        
+                        var content_id = params.content_id;
+                        if ($("#artist_id_" + content_id).length) {
+                            $("#artist_id_" + content_id).removeClass('artistFollow');
+                            $("#artist_id_"+content_id).addClass('icon-ic_following');
+                            $("#artist_id_"+content_id + " span").html('Following');
+                        } else {
+                            console.log("artist_id_" + content_id + '   --- element Not exists');
+                        }
+                        
+                        cm_mediaEvent('user-favorite', params);
+                    } else if (status == 'login_fail') {
+                        showLoginPopup();
+                    } else {
+                        messageShowpopup("Error occured ...");
+                    }
+                }
+            });
+        } else {
+            $('#user_action').val('user_artist_followed');
+            $('#content_id').val(params.content_id);
+            $('#content_type').val(params.content_type);
+            $('#content_title').val(params.content_title);
+            $('#user_msg').val(successHtml);
+            showLoginPopup();
+        }
+    },
+    addToMyArtistFollowed: function (params) {
+        var successHtml = '<p>' + params.content_title + ' added to your following list</p>';
+        //var loggedin_status = $('#user_ln_status').val();
+        if (hungamaGetCookie('h_profile')) {
+            cookie_details = JSON.parse(hungamaGetCookie('h_profile'));
+            loggedin_status = cookie_details['status'];
+        }
+        if (loggedin_status == 1) {
+            $.ajax({
+                type: 'POST',
+                url: $('#origin_url').val() + "user/addtomyartistfollowed",
+                data: {content_id: params.content_id, content_type: params.content_type},
+                success: function (result) {
+                    status = result.trim();
+                    if (status == 'done') {
+                        messageShowpopup(successHtml);
+                        var category = $("#category").val();
+                        if(category != '') {
+                            setUserConsumption(category,params.content_id,'add');
+                        }
+                        
+                        var content_id = params.content_id;
+                        if ($("#artist_id_" + content_id).length) {
+                            $("[id=artist_id_" + content_id+"]").removeClass('icon-ic_fallow');
+                            $("[id=artist_id_" + content_id+"]").addClass('icon-ic_following');
+                        } else {
+                            console.log("artist_id_" + content_id + '   --- element Not exists');
+                        }
+                        
+                        cm_mediaEvent('user-favorite', params);
+                    } else if (status == 'login_fail') {
+                        showLoginPopup();
+                    } else {
+                        messageShowpopup("Error occured ...");
+                    }
+                }
+            });
+        } else {
+            $('#user_action').val('user_artist_followed');
+            $('#content_id').val(params.content_id);
+            $('#content_type').val(params.content_type);
+            $('#content_title').val(params.content_title);
+            $('#user_msg').val(successHtml);
+            showLoginPopup();
+        }
+    },
+    removeFromMyArtistfollowedDetails: function (params) {
+        var successHtml = '<p>' + params.content_title + ' removed from your following list </p>';
+        //$.ajax({
+        //    type: 'POST',
+        //    url: $('#site_url').val() + "user/loggedin-status",
+        //    success: function (result) {
+        //        var response = JSON.parse(result);
+        //var loggedin_status = $('#user_ln_status').val();
+        if (hungamaGetCookie('h_profile')) {
+            cookie_details = JSON.parse(hungamaGetCookie('h_profile'));
+            loggedin_status = cookie_details['status'];
+        }
+
+        if (loggedin_status == 1) {
+            //if (response.status == 'yes') {
+            $.ajax({
+                type: 'POST',
+                url: $('#origin_url').val() + "user/removefrommyartistfollowed",
+                data: {content_id: params.content_id, content_type: params.content_type},
+                success: function (result) {
+                    status = result.trim();
+                    if (status == 'done') {                        
+                        var page = $("#page").val();
+                        if(page == 'artist' || 'my_followed_artist') { 
+                            var url = window.location.href;
+                            pjaxLoadURL(url);
+                        }
+                        messageShowpopup(successHtml);
+//                        if(page == 'my_followed_artist') { 
+//                            pjaxLoadURL($('#origin_url').val() + "user/my-followed-artist");
+//                        }   else { 
+//                            var url = window.location.href;
+//                            pjaxLoadURL(url);
+//                        }
+                        var category = $("#category").val(); 
+                        if(category != '') {
+                           setUserConsumption(category,params.content_id,'remove');
+                        }
+                        
+                        var content_id = params.content_id;
+                        if ($("#artist_id_" + content_id).length) {
+                            $("[id=artist_id_" + content_id+"]").addClass('artistFollow');
+
+                            // class="icon-ic_following"
+                        } else {
+                            console.log("artist_id_" + content_id + '   --- Not element exists');
+                        }
+                    } else if (status == 'login_fail') {
+                        showLoginPopup();
+                    } else {
+                        messageShowpopup("Error occured ...");
+                    }
+                }
+            });
+        } else {
+            showLoginPopup();
+        }
+        //}
+        //});
+    },
+    removeFromMyArtistfollowed: function (params) {
+        var successHtml = '<p>' + params.content_title + ' removed from your following list </p>';
+        //$.ajax({
+        //    type: 'POST',
+        //    url: $('#site_url').val() + "user/loggedin-status",
+        //    success: function (result) {
+        //        var response = JSON.parse(result);
+        //var loggedin_status = $('#user_ln_status').val();
+        if (hungamaGetCookie('h_profile')) {
+            cookie_details = JSON.parse(hungamaGetCookie('h_profile'));
+            loggedin_status = cookie_details['status'];
+        }
+        if (loggedin_status == 1) {
+            //if (response.status == 'yes') {
+            $.ajax({
+                type: 'POST',
+                url: $('#origin_url').val() + "user/removefrommyartistfollowed",
+                data: {content_id: params.content_id, content_type: params.content_type},
+                success: function (result) {
+                    status = result.trim();
+                    if (status == 'done') {                        
+                        var page = $("#page").val();
+                        if(page == 'artist' || 'my_followed_artist') { 
+                            var url = window.location.href;
+                            pjaxLoadURL(url);
+                        } 
+                        messageShowpopup(successHtml);
+//                        if(page == 'my_followed_artist') { 
+//                            pjaxLoadURL($('#origin_url').val() + "user/my-followed-artist");
+//                        } else { 
+//                            var url = window.location.href;
+//                            pjaxLoadURL(url);
+//                        }
+                        
+                        var category = $("#category").val(); 
+                        if(category != '') {
+                           setUserConsumption($("#category").val(),params.content_id,'remove');
+                        }                        
+                        
+                        var content_id = params.content_id;
+                        if ($("#artist_id_" + content_id).length) {
+                            $("#artist_id_" + content_id).removeClass('icon-ic_following');
+                            $("#artist_id_" + content_id).addClass('icon-ic_fallow');
+
+                            // class="icon-ic_following"
+                        } else {
+                            console.log("artist_id_" + content_id + '   --- Not element exists');
+                        }
+                    } else if (status == 'login_fail') {
+                        showLoginPopup();
+                    } else {
+                        messageShowpopup("Error occured ...");
+                    }
+                }
+            });
+        } else {
+            showLoginPopup();
+        }
+        //}
+        //});
+    },
+    removePlaylistAction: function (playlist_id, playlist_title) {
+        $('#user_playlist_id').val(playlist_id);
+        $('#user_playlist_title').val(playlist_title);
+        $('#del-playlist, .showBg').show();
+    },
+    removePlaylist: function () {
+        $('#del-playlist, .showBg').hide();
+        var playlist_id = $('#user_playlist_id').val();
+        var playlist_title = $('#user_playlist_title').val();
+        var successHtml = '<p>' + playlist_title + ' Removed From Your Playlist successfully</p>';
+        //var loggedin_status = $('#user_ln_status').val();
+        if (hungamaGetCookie('h_profile')) {
+            cookie_details = JSON.parse(hungamaGetCookie('h_profile'));
+            loggedin_status = cookie_details['status'];
+        }
+        if (loggedin_status == 1) {
+            $.ajax({
+                type: 'POST',
+                url: $('#origin_url').val() + "user/my-playlist/",
+                data: {playlist_id: playlist_id},
+                success: function (result) {
+                    status = result.trim();
+                    if (status == 'done') {
+                        var url = window.location.href; 
+                        console.log(url);  
+                        var url_len = url.split("/"); 
+                        console.log(url_len.length); 
+                        if(url_len < 7){
+                                pjaxLoadURL(url);
+                        }else {
+                        if (hungamaGetCookie('h_profile')) {
+                               hungamaLoginDetails1 = JSON.parse(hungamaGetCookie('h_profile')); 
+                               console.log(hungamaLoginDetails1['userId']); 
+                               var userid = hungamaLoginDetails1['userId'];
+                               console.log(url_len.length); 
+                               console.log(url_len[6]); 
+                               var contenttype = url_len[6]; 
+                                if(contenttype== 'undefined' || contenttype == '' || contenttype == undefined){contenttype = 'music';}
+                               pjaxLoadURL($('#site_url').val() + 'user/'+userid+'/playlist/'+contenttype);
+                        }
+                        }
+                        messageShowpopup(successHtml);
+                        $('#my_playlist_' + playlist_id).hide();
+                    } else if (status == 'login_fail') {
+                        showLoginPopup();
+                    } else if (status == 'fail') {
+                        messageShowpopup("Error occured ...");
+                    } else {
+                       showLoginPopup();
+                    }
+                }
+            });
+        } else {
+            showLoginPopup();
+        }
+    },
+    rateMovie: function () {
+//        var ratings = $('.br-current-rating').text();
+        var ratings = $('#number').val();
+        var content_id = $("#videoid").val();
+        var successHtml = 'Movie Rated Successfully'; 
+        var content_title = $("#vname").val();
+//        $.ajax({
+//            type: 'POST',
+//            url: $('#origin_url').val() + "user/loggedin-status",
+//            success: function (result) {
+//                var response = JSON.parse(result);
+//                if (response.status == 'yes') {
+        if (hungamaGetCookie('h_profile')) {
+            cookie_details = JSON.parse(hungamaGetCookie('h_profile'));
+            loggedin_status = cookie_details['status'];
+        }
+        if (loggedin_status == 1) {
+            $("#ratingmov, .showBg").hide();
+            $.ajax({
+                type: 'POST',
+                url: $('#origin_url').val() + "user/ratemovie/", 
+                data: {content_id: content_id, rating: ratings , action : 'set'},
+                success: function (result) {
+                    console.log(result);
+                    var response = JSON.parse(result);
+                    if (response.status == 1) {
+                        var rating = response.node['data']['user_rating'];   
+                        $(".user_rating_"+content_id).show();
+                        $("#user_rating_"+content_id).show();   
+                        $("#user_rating_"+content_id).html(rating+'/10');                
+                        messageShowpopup('Rated Successfully');                        
+                        var params = {'content_id':content_id, 'content_title':content_title, 'rating':ratings, 'content_type':'movie'};
+                        cm_mediaEvent('user-rating', params);
+                    }
+                }
+            });
+        } else {
+            $('#user_action').val('user_ratemovie');
+            $('#content_id').val(content_id);
+            $('#movie_rating').val(ratings);
+            $('#user_msg').val(successHtml);
+            $("#ratingmov, .showBg").hide();
+            showLoginPopup();
+            
+//                    $('#ratingmov').hide();
+//                    $('#user_action').val('user_ratemovie');
+//                    $('#content_type').val('movie');
+//                    $('#content_id').val(content_id);
+//                    $('#movie_rating').val(ratings);
+//                    $('#user_msg').val(successHtml);
+//                    showLoginPopup();
+        }
+//                showPopup("", successHtml);
+//            }
+//        })
+    },
+    loadUserPlaylist: function () {
+        var listHTML, chk_status;
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + "user/loggedin-status",
+            success: function (result) {
+                var response = JSON.parse(result);
+                if (response.status == 'yes') {
+                    $.ajax({
+                        type: 'POST',
+                        url: $('#origin_url').val() + 'user/playlists',
+                        success: function (response) {
+                            var data = JSON.parse(response);
+                            if (data.playlist.length > 0) {
+                                listHTML = '<ul class="myPlaylist">';
+                                for (var i = 0; i < data.playlist.length; i++) {
+                                    if (i == 0) {
+                                        chk_status = 'checked';
+                                    } else {
+                                        chk_status = '';
+                                    }
+                                    if (data.playlist[i]['title'] != '') {
+                                        var id = data.playlist[i]['id'];
+                                        //var id = '5059';
+                                        listHTML += '<li><div><input type="radio" id="radio_' + i + '" name="user_radio" ' + chk_status + ' value="' + id + '" /><label for="radio_' + i + '"><span></span>' + data.playlist[i]['title'] + '</label></div></li>';
+                                    }
+                                }
+                                listHTML += '</ul><p class="CTR"><a href="javascript:void(0);" onclick="user.loadUserPlaylistIntoAP();" class="button">Load</a></p>';
+                            } else {
+                                listHTML = "<p>Sorry, You do not have any saved Playlist</p>";
+                            }
+                            showPopup("Load Playlist", listHTML);
+                        }
+                    });
+                } else {
+                    $('#user_action').val('user_loadplaylist');
+                    showLoginPopup();
+                }
+            }
+        });
+    },
+    loadUserPlaylistIntoAP: function () {
+        var selected_rdo = $("input[type='radio'][name='user_radio']:checked");
+        var selectedVal = selected_rdo.val();
+        if (selectedVal > 0) {
+            //audio_player.add_to_player({content_id: selectedVal, content_type: 'playlist', action: 'add'});
+            audio_player.add_user_playlist_to_player({content_id: selectedVal, content_type: 'playlist', action: 'add'});
+            //$('#jw-common-popup, .jw-pop').hide();
+            //$('.showBg').hide();
+            hidePop();
+        }
+    },
+    userNotifyMeAction: function (params) {
+        content_id = params.content_id;
+        content_type = params.content_type;
+        var successHtml = 'Notified Me Successfully';
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + "user/loggedin-status",
+            success: function (result) {
+                var response = JSON.parse(result);
+                if (response.status == 'yes') {
+                    $.ajax({
+                        type: 'POST',
+                        url: $('#origin_url').val() + "user/notifyme",
+                        data: {content_id: content_id, content_type: content_type},
+                        success: function (result) {
+                            status = result.trim();
+                            if (status == 'added') {
+                                showPopup("", "Notified Me Successfully");
+                                $('#un_notifyme_' + content_id).show();
+                                $('#notifyme_' + content_id).hide();
+                            } else {
+                                showPopup("", "Error occured");
+                            }
+                        }
+                    });
+                } else {
+                    $('#user_action').val('user_notifyme');
+                    $('#content_type').val(content_type);
+                    $('#content_id').val(content_id);
+                    $('#user_msg').val(successHtml);
+                    showLoginPopup();
+                }
+            }
+        })
+    },
+    userUnNotifyMeAction: function (params) {
+        content_id = params.content_id;
+        content_type = params.content_type;
+        var successHtml = 'Un Notified Me Successfully';
+        $.ajax({
+            type: 'POST',
+            url: $('#origin_url').val() + "user/loggedin-status",
+            success: function (result) {
+                var response = JSON.parse(result);
+                if (response.status == 'yes') {
+                    $.ajax({
+                        type: 'POST',
+                        url: $('#origin_url').val() + "user/unnotifyme",
+                        data: {content_id: content_id, content_type: content_type},
+                        success: function (result) {
+                            status = result.trim();
+                            if (status == 'added') {
+                                showPopup("", "Un Notified Me Successfully");
+                                $('#un_notifyme_' + content_id).hide();
+                                $('#notifyme_' + content_id).show();
+                            } else {
+                                showPopup("", "Error occured");
+                            }
+                        }
+                    });
+                } else {
+                    $('#user_action').val('user_unnotifyme');
+                    $('#content_type').val(content_type);
+                    $('#content_id').val(content_id);
+                    $('#user_msg').val(successHtml);
+                    showLoginPopup();
+                }
+            }
+        })
+    }
+}
+

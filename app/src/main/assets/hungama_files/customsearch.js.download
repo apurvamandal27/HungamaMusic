@@ -1,0 +1,1325 @@
+var isajax = false;
+
+function closesearchbox() {
+    hun_usersearch();
+    $('.newSearchClose').click();
+}
+
+function closerecentsearch() {
+    hungamaSetCookie('mysearchstring', '', 1);
+    $(".restext").hide();
+}
+
+function removesearch(me) {
+    me.parent().remove();
+    var c_value = me.attr('value');
+    var cookieStr = hungamaGetCookie('mysearchstring');
+    cookieStr = cookieStr.toLowerCase();
+    c_value = c_value.toLowerCase();
+    var c1 = cookieStr.replace(c_value, " ");
+    var search_cookie = c1.replace("| |", "|");
+
+    if (search_cookie.trim().length == 1) {
+        hungamaSetCookie('mysearchstring', '', 1);
+    } else {
+        hungamaSetCookie('mysearchstring', search_cookie.trim(), 1);
+    }
+    var search_cookie = hungamaGetCookie('mysearchstring');
+    var usersearches = search_cookie.split('|').length;
+    if (usersearches < 2) {
+        $(".restext").hide();
+    }
+}
+
+function hun_trendingsearch() {
+    var ajaxUrl = gen_search_urls('getTopTrends');
+    ajaxUrl = encodeURI(ajaxUrl);
+    $.ajax({
+        type: "POST",
+        url: ajaxUrl,
+        success: function (html) {
+            $(".trending").html(html);
+            $('.trending').show();
+        }
+    });
+}
+
+function hun_popularsearch() {
+    var ajaxUrl = gen_search_urls('getPopularSearch');
+    ajaxUrl = encodeURI(ajaxUrl);
+    $.ajax({
+        type: "POST",
+        url: ajaxUrl,
+        success: function (html) {
+            $(".popsearch").html(html);
+            $('.popsearch').show();
+        }
+    });
+}
+
+function hun_usersearch() {
+    var cookieStr = hungamaGetCookie('mysearchstring');
+    var usersearchstring = '';
+    if (cookieStr != '') {
+        usersearchstring += '<h3>My Recent Searches</h3><a  href="javascript:void(0);" onclick="closerecentsearch();" style="color:#0f7ef3;display:inline-block;border:none;padding-bottom:15px" class="clearAll">CLEAR ALL</a><br>';
+        var usersearches = cookieStr.split("|");
+        var uniqueSearchKeys = [];
+        $.each(usersearches, function (i, el) {
+            if (el.trim().length > 0) {
+                if ($.inArray(el, uniqueSearchKeys) === -1)
+                    uniqueSearchKeys.push(el);
+            }
+        });
+
+        uniqueSearchKeys.forEach(function (item, index) {
+            if (index < 10) {
+                if (item != '') {
+                    var searchUrl = gen_search_urls('viewSearchPage', '', '', '', item, 'all', '');
+                    usersearchstring += '<a href="javascript:void(0)" class="one"><span class="" onclick="recentSearch(\'' + item.toLowerCase() + '\',\'all\',\'\',\'tab1\')">' + item + '</span> <i href="javascript:void(0);" onclick="removesearch($(this));" class="icon-ic_cancel" value="' + item.toLowerCase() + '"></i></a>';
+                }
+            }
+        });
+    }
+    $(".restext").html(usersearchstring);
+    $(".restext").show();
+}
+
+function hun_autosuggest() {
+    var search_tab_flag = $("#search_tab_flag").val('[{"tab1":"no","tab2":"no","tab3":"no","tab4":"no","tab5":"no","tab6":"no","tab7":"no","tab8":"no","tab9":"no","tab10":"no","tab11":"no"}]');
+    var queryTerm = $('#tags').val();
+	var queryTerm = queryTerm.replace(/(<([^>]+)>)/ig,"");
+    var category = $('#searchCat').html();
+    category = category.toLowerCase();
+    if (category == 'artists') {
+        category = 'artist';
+    } else if (category == 'movies') {
+        category = 'movie';
+    } else if (category == 'albums') {
+        category = 'album';
+    } else if (category == 'movies') {
+        category = 'movie';
+    } else if (category == 'songs') {
+        category = 'song';
+    } else if (category == 'tv shows') {
+        category = 'tvshow';
+    } else if (category == 'video' || category == 'videos') {
+        category = 'video';
+    } else if (category == 'playlist' || category == 'playlists') {
+        category = 'playlist';
+	} else if (category == 'short films' || category == 'short film' || category == 'shortfilms') {
+        category = 'shortfilms';
+    }
+
+    var searchlength = queryTerm.length;
+    if (hungamaGetCookie('_hcntr')) {
+        country_code = hungamaGetCookie('_hcntr');
+    } else {
+        country_code = '';
+    }
+    if (searchlength > 2) {
+        var ajaxUrl = $('#site_url').val() + '?c=search&m=getGroupedSearchByText&keyword=' + queryTerm + '&type=' + category + '&_country=' + country_code;
+        ajaxUrl = encodeURI(ajaxUrl);
+        if (queryTerm !== '') {
+            $.ajax({
+                type: "GET",
+                url: ajaxUrl,
+                success: function (html) {
+                    $("#search_keyword").val(queryTerm);
+                    $(".tagsCont").html(html);
+                    $('.tagsCont').show();
+                    ga('send', 'event', {
+                        eventCategory: 'Autosuggest',
+                        eventAction: 'click',
+                        eventLabel: queryTerm
+                    });
+                }
+            });
+        }
+    } else {
+        $('.tagsCont').hide();
+    }
+    return false;
+}
+
+
+function recentSearch(recent_keyword, type, subtype, tab_id) {
+    if (tab_id == '') {
+        tab_id = 'tab1';
+    }
+    $('#search_tab').val(tab_id);
+    if (recent_keyword == '') {
+        recent_keyword = $("#search_keyword").val();
+    } else {
+        if ($("#search_keyword").val() != recent_keyword) {
+            var search_tab_flag = $("#search_tab_flag").val('[{"tab1":"no","tab2":"no","tab3":"no","tab4":"no","tab5":"no","tab6":"no","tab7":"no","tab8":"no","tab9":"no","tab10":"no", "tab11":"no"}]');
+        }
+        $("#search_keyword").val(recent_keyword);
+    }
+    var search_cat = $("#searchCat").html();
+    if (search_cat.toLowerCase() != 'all') {
+        var cat = ' - ' + type;
+    } else {
+        cat = '';
+    }
+    var search_txt = 'Search Results for "<span>' + recent_keyword + '<span>"';
+    $(".resultOf").html(search_txt);
+    //document.title = recent_keyword +' - Hungama Search';
+    var search_tab_flag = $("#search_tab_flag").val();
+    var obj = $.parseJSON(search_tab_flag);
+
+    //var page_no = $("#page_no").val();
+    var page_no = 1;
+    if (isNaN(page_no))
+        page_no = 0;
+    page_no = parseInt(page_no);
+    $("#search_keyword").val(recent_keyword);
+    $("#tags").val(recent_keyword);
+    $('.newSearch').addClass('open');
+    $('.verscroll').scroll(function () {
+        var elem = $('.verscroll');
+        if ($(this).scrollTop() + $(this).height() == $(this)[0].scrollHeight) {
+            if (!isajax) {
+                isajax = true;
+                search_load_more();
+            }
+        }
+    });
+    $(".searchWrap").show();
+    $(".tagsCont").hide();
+    $("#searchloader").show();
+    if (hungamaGetCookie('_hcntr')) {
+        country_code = hungamaGetCookie('_hcntr');
+    } else {
+        country_code = '';
+    }
+
+    var subtype_query = '';
+    if (subtype) {
+        subtype_query = '&subtype=' + subtype;
+    }
+    var searchUrl = gen_search_urls('viewSearchPage', '', '', subtype, recent_keyword, type, page_no);
+    searchUrl = encodeURI(searchUrl);
+
+    searchUrl = searchUrl + '?_country=' + country_code;
+    ga_pathname = searchUrl;
+    commonTracker(ga_pathname, 'ga_track_page');
+    if (recent_keyword) {
+        /* if (player1Obj) {
+         player1Obj.destroyAdAndVideo();
+         player1Obj.pause();
+         player1Obj.stop();
+         $("#vdo-player").hide();
+         }*/
+        var cookieStr = hungamaGetCookie('search_url');
+        var str = window.location.href;
+        if (str.indexOf("search") >= 0) {
+        } else {
+            //hungamaSetCookie('search_url', window.location.href, 7);
+        }
+        // window.history.pushState("object or string", "Title", searchUrl);
+        if (obj[0][tab_id] == 'no') {
+            $.ajax({
+                type: 'GET',
+                dataType: "json",
+                url: searchUrl,
+                success: function (result) {
+                    var response_html = '';
+                    var search_tab_flag = $("#search_tab_flag").val();
+                    var obj = $.parseJSON(search_tab_flag);
+                    obj[0][tab_id] = 'yes';
+                    var obj_search = JSON.stringify(obj);
+                    $("#search_tab_flag").val(obj_search);
+                    if (tab_id == 'tab1') {
+                        if ((result['song'] && result['song'].length == 0) && (result['album'] && result['album'].length == 0) && (result['playlist'] && result['playlist'].length == 0) && (result['movie'] && result['movie'].length == 0) && (result['artist'] && result['artist'].length == 0) && (result['movie'] && result['movie'].length == 0) && (result['radio'] && result['radio'].length == 0)  && (result['video'] && result['video'].length == 0)) {
+                            response_html += '<div class="listing clearfix1" id="load_more_content"><div class="nodata">No results found for ' + $("#search_keyword").val();
+                            +'</div></div>';
+                        } else {
+                            if (result['song'] && result['song'].length > 0) {
+                                response_html += '<div class="block-head border1 clearfix1"><h3>Songs</h3>';
+                                if (result['song'].length >= 6) {
+                                    response_html += '<a ' + result['view_all'][0]['song'] + '>View all</a>';
+                                }
+                                response_html += '</div><div class="block-cont clearfix1">';
+                                $.each(result['song'], function (response) {
+                                    response_html += '<div class="' + result['song'][response].classsong + '"><div class="song"><div class="song-thmb">' + result['song'][response].song_thumb + ' ' + result['song'][response].audio_play_call + '</div><div class="song-name"><h4><a id="pajax_a" href="' + result['song'][response].song_url + '" title="' + result['song'][response].name + '">' + result['song'][response].name + '</a></h4><h5>' + result['song'][response].album_name + '</h5></div><div class="song-action">' + result['song'][response].three_dots_menu + '</div><div class="clear"></div></div></div>';
+                                });
+                                response_html += '</div>';
+                            }
+                            if (result['album'] && result['album'].length > 0) {
+                                response_html += '<div class="block-head clearfix1"><h3>Albums</h3>';
+                                if (result['album'].length >= 6) {
+                                    response_html += '<a ' + result['view_all'][0]['album'] + '>View all</a>';
+                                }
+                                response_html += '</div>';
+                                response_html += '<div class="block-cont clearfix1"><div class="album-carousal owl-carousel">';
+                                $.each(result['album'], function (response) {
+                                    response_html += '<div class="block-artist block-album boxshadow clearfix1"><div class="art-img 123456789">' + result['album'][response].album_thumb + ' ' + result['album'][response].audio_play_call + '</div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['album'][response].url + '" title="' + result['album'][response].name + '" class="art-ttl">' + result['album'][response].name + '</a><div class="subttl">' + result['album'][response].date_lang + '</div></div>' + result['album'][response].three_dots_menu + '</div></div>';
+                                });
+                                response_html += '</div></div>';
+                            }
+                            if (result['playlist'] && result['playlist'].length > 0) {
+                                response_html += '<div class="block-head border1 clearfix1"><h3>Playlist</h3>';
+                                if (result['playlist'].length >= 6) {
+                                    response_html += '<a ' + result['view_all'][0]['playlist'] + '>View all</a>';
+                                }
+                                response_html += '</div>';
+                                response_html += '<div class="block-cont clearfix1"><div class="micro-audioPlaylist-carousal owl-carousel">';
+                                $.each(result['playlist'], function (response) {
+									
+									response_html +='<div class="block-artist block-album boxshadow clearfix1"><div class="art-img clearfix1 '+result['playlist'][response].imageclass +'">' + result['playlist'][response].playlist_thumb;
+									
+                                    response_html +=result['playlist'][response].audio_play_call + '</div>';
+									
+									response_html +='<div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['playlist'][response].url + '" title="' + result['playlist'][response].name + '">' + result['playlist'][response].name + '</a><div class="subttl">' + result['playlist'][response].no_of_songs + ' Songs</div></div>';
+									
+									response_html +=result['playlist'][response].three_dots_menu + '</div></div>';
+									
+									
+                                });
+                                response_html += '</div></div>';
+                            }
+                            if (result['movie'] && result['movie'].length > 0) {
+                                response_html += '<div class="block-head clearfix1"><h3>Movies</h3>';
+                                if (result['movie'].length >= 6) {
+                                    response_html += '<a ' + result['view_all'][0]['movie'] + '>View all</a>';
+                                }
+                                response_html += '</div>';
+                                response_html += '<div class="block-cont clearfix1"><div class="blockmov-carousal owl-carousel">';
+                                $.each(result['movie'], function (response) {
+                                    response_html += '<div class="movie-block-artist boxshadow clearfix1"><div class="movie-img"><a id="pajax_a" href="' + result['movie'][response].url + '">' + result['movie'][response].movie_thumb + '</a><div id="movie_id_' + result['movie'][response].id + '" class="movieblock_add icon-ic_watchlist_add" onclick="' + result['movie'][response].watchlist_call + '"></div>' + result['movie'][response].is_rent;
+                                    response_html += '<div class="artistmovieover">' + result['movie'][response].censor_certificate + '<div class="movie-details">' + result['movie'][response].genre + '</div>';
+                                    response_html += '<div class="users-rating"><span class="users">USER\'S rating</span> <span>' + result['movie'][response].rating + ' / 10</span></div><div class="movie-actions"><a class="btn-highlight" href="' + result['movie'][response].url + '">Play</a></div><div class="movie-close"> <i class="icon-ic_cancel"></i></div><div class="clear"></div></div></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['movie'][response].url + '" title="' + result['movie'][response].name + '"> ' + result['movie'][response].name + '</a><div class="subttl">' + result['movie'][response].date_lang + '</div></div></div></div>';
+                                });
+                                response_html += '</div></div>';
+                            }
+                            if (result['artist'] && result['artist'].length > 0) {
+                                response_html += '<div id="followed-wrapper"><div class="block-head clearfix1"><h3>Artists</h3>';
+                                if (result['artist'].length >= 6) {
+                                    response_html += '<a href="javascript:void(0)" ' + result['view_all'][0]['artist'] + '>View all</a>';
+                                }
+                                response_html += '</div>';
+                                response_html += '<div class="block-cont clearfix1"><div class="art-carousal owl-carousel">';
+                                $.each(result['artist'], function (response) {
+                                    response_html += '<div class="block-artist boxshadow clearfix1"><a id="pajax_a" href="' + result['artist'][response].url + '" title="' + result['artist'][response].name + '">' + result['artist'][response].artist_thumb + '</a><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['artist'][response].url + '" title="' + result['artist'][response].name + '"  class="art-ttl">' + result['artist'][response].name + '</a></div><div class="follow"><a class="icon-ic_fallow" id="artist_id_' + result['artist'][response].id + '" href="javascript:void(0);" onclick="' + result['artist'][response].follow_call + '"></a></div></div></div>';
+                                });
+                                response_html += '</div></div></div>';
+                            }
+                            if (result['video'] && result['video'].length > 0) {
+                                response_html += '<div class="block-head clearfix1"><h3>Videos</h3>';
+                                if (result['video'].length >= 5) {
+                                    response_html += ' <a ' + result['view_all'][0]['video'] + '>View all</a>';
+                                }
+                                response_html += '</div>';
+                                response_html += '<div class="block-cont clearfix1"><div class="musicvdo-carousal owl-carousel">';
+                                $.each(result['video'], function (response) {
+                                    response_html += '<div class="block-artist block-vdo boxshadow clearfix1"><div class="musicvdo-img">' + result['video'][response].video_thumb + ' ' + result['video'][response].play_call + '</div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['video'][response].url + '" class="art-ttl" title="' + result['video'][response].name + '">' + result['video'][response].name + '</a><div class="subttl">' + result['video'][response].album_name + '</div></div>' + result['video'][response].three_dots + '</div></div>';
+                                });
+                                response_html += '</div></div>';
+                            }
+                            if (result['radio'] && result['radio'].length > 0) {
+                                response_html += '<div class="block-head clearfix1"><h3>Radio</h3>';
+                                if (result['radio'].length >= 6) {
+                                    response_html += '<a href="javascript:void(0)" ' + result['view_all'][0]['radio'] + '>View all</a>';
+                                }
+                                response_html += '</div><div class="block-cont clearfix1"><div class="liveradio-carousal owl-carousel">';
+                                $.each(result['radio'], function (response) {
+                                    response_html += '<div class="block-artist block-radio boxshadow clearfix1"><div class="liveradio-img">' + result['radio'][response].radio_thumb + '<a href="javascript:void(0)" class="hovercont" onclick="' + result['radio'][response].play_call + '" ><span class="icon-ic_play" id="' + result['radio'][response].id + '"></span></a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['radio'][response].url + '"class="art-ttl">' + result['radio'][response].name + '</a><div class="subttl">Hindi</div></div>' + result['radio'][response].three_dots + '</div></div>';
+                                });
+                                response_html += '</div></div>';
+                            }
+                            if (result['tvshow'] && result['tvshow'].length > 0) {
+                                response_html += '<div class="block-head clearfix1"><h3>Tv Shows</h3><a href="javascript:void(0)" ' + result['view_all'][0]['tvshow'] + '>View all</a></div>';
+                                response_html += '<div class="block-cont clearfix1"><div class="tvhpick-carousal owl-carousel">';
+                                $.each(result['tvshow'], function (response) {
+                                    response_html += '<div class="tvs-block-artist boxshadow clearfix1"><div class="tvs-img"><a id="pajax_a" href="' + result['tvshow'][response].url + '" title="' + result['tvshow'][response].name + '" >' + result['tvshow'][response].tvshow_thumb + '</a><div id="movie_id_' + result['tvshow'][response].id + '" class="movieblock_add icon-ic_watchlist_add" onclick="' + result['tvshow'][response].watchlist_call + '"></div></a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['tvshow'][response].url + '" class="art-ttl">' + result['tvshow'][response].name + '</a><div class="subttl">' + result['tvshow'][response].language + '  </div></div></div></div>';
+                                });
+                                response_html += '</div></div>';
+                            }
+                        }
+                    } else if (tab_id == 'tab2') {
+                        if (result['artist'] && result['artist'].length > 0) {
+                            response_html += '<div id="followed-wrapper"><div class="clearfix1" id="artistsearch">';
+                            $.each(result['artist'], function (response) {
+                                response_html += '<div class="block-artist boxshadow clearfix1"><a id="pajax_a" href="' + result['artist'][response].url + '" title="' + result['artist'][response].name + '">' + result['artist'][response].artist_thumb + '</a><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['artist'][response].url + '" title="' + result['artist'][response].name + '"  class="art-ttl">' + result['artist'][response].name + '</a></div><div class="follow"><a class="icon-ic_fallow" id="artist_id_' + result['artist'][response].id + '" href="javascript:void(0);" onclick="' + result['artist'][response].follow_call + '"></a></div></div></div>';
+                            });
+                            response_html += '</div>';
+                        } else {
+                            response_html += '<div class="listing clearfix1" id="load_more_content"><div class="nodata">No results found for ' + $("#search_keyword").val();
+                            +'</div></div>';
+                        }
+                    } else if (tab_id == 'tab3') {
+                        if ((result['movie'] && result['movie'].length > 0) || (result['collection'] && result['collection'].length > 0)) {
+                            if (result['movie'] && result['movie'].length > 0) {
+                                response_html += '<div class="block-head clearfix1"><h3>Movies</h3>';
+                                if (result['movie'].length > 11) {
+                                    response_html += '<a href="javascript:void(0)" value="movies" class="search_viewall">View all</a>';
+                                }
+                                response_html += '</div><div class="block-content clearfix1">';
+                                $.each(result['movie'], function (response) {
+                                    response_html += '<div class="movie-block-artist boxshadow clearfix1"><div class="movie-img"><a id="pajax_a" href="' + result['movie'][response].url + '">' + result['movie'][response].movie_thumb + '</a><div id="movie_id_' + result['movie'][response].id + '" class="movieblock_add icon-ic_watchlist_add" onclick="' + result['movie'][response].watchlist_call + '"></div>' + result['movie'][response].is_rent;
+                                    response_html += '<div class="artistmovieover">' + result['movie'][response].censor_certificate + '<div class="movie-details">' + result['movie'][response].genre + '</div>';
+                                    response_html += '<div class="users-rating"><span class="users">USER\'S rating</span> <span>' + result['movie'][response].rating + ' / 10</span></div><div class="movie-actions"><a class="btn-highlight" href="' + result['movie'][response].url + '">Play</a></div><div class="movie-close"> <i class="icon-ic_cancel"></i></div><div class="clear"></div></div></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['movie'][response].url + '" title="' + result['movie'][response].name + '"> ' + result['movie'][response].name + '</a><div class="subttl">' + result['movie'][response].date_lang + '</div></div></div></div>';
+                                });
+                                response_html += '</div>';
+                            }
+                            if (result['collection'] && result['collection'].length > 0) {
+                                response_html += '<div class="block-head clearfix1"><h3>Collections</h3></div><div class="block-content themedCollection clearfix1">';
+                                $.each(result['collection'], function (response) {
+                                    response_html += '<div class="block-artist theme-artist block-album boxshadow clearfix1"><div class="art-img"><a id="pajax_a"  href="' + result['collection'][response].url + '" >' + result['collection'][response].collection_thumb + '</a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['collection'][response].url + '" title="' + result['collection'][response].name + '">' + result['collection'][response].name + '</a><div class="subttl">' + result['collection'][response].no_movies + ' Movies</div></div></div></div>';
+                                });
+                                response_html += '</div>';
+                            }
+                            if (result['theme'] && result['theme'].length > 0) {
+                                response_html += '<div class="block-head clearfix1"><h3>Themes</h3></div><div class="block-content themedCollection clearfix1">';
+                                $.each(result['theme'], function (response) {
+                                    response_html += '<div class="block-artist theme-artist block-album boxshadow clearfix1"><div class="art-img"><a id="pajax_a"  href="' + result['theme'][response].url + '" >' + result['theme'][response].theme_thumb + '</a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['theme'][response].url + '" title="' + result['theme'][response].name + '">' + result['theme'][response].name + '</a><div class="subttl">' + result['theme'][response].no_movies + ' Movies</div></div></div></div>';
+                                });
+                                response_html += '</div>';
+                            }
+                        }
+                        else {
+                            response_html += '<div class="listing clearfix1" id="load_more_content"><div class="nodata">No results found for ' + $("#search_keyword").val();
+                            +'</div></div>';
+                        }
+                    } else if (tab_id == 'tab4') {
+                        if (result['song'] && result['song'].length > 0) {
+                            $.each(result['song'], function (response) {
+                                response_html += '<div class="' + result['song'][response].classsong + '"><div class="song"><div class="song-thmb">' + result['song'][response].song_thumb + ' ' + result['song'][response].audio_play_call + '</div><div class="song-name"><h4><a id="pajax_a" href="' + result['song'][response].url + '" title="' + result['song'][response].name + '">' + result['song'][response].name + '</a></h4><h5>' + result['song'][response].album_name + '</h5></div><div class="song-action">' + result['song'][response].three_dots_menu + '</div><div class="clear"></div></div></div>';
+                            });
+                        } else {
+                            response_html += '<div class="listing clearfix1" id="load_more_content"><div class="nodata">No results found for ' + $("#search_keyword").val();
+                            +'</div></div>';
+                        }
+                    } else if (tab_id == 'tab5') {
+                        if (result['album'] && result['album'].length > 0) {
+                            $.each(result['album'], function (response) {
+                                response_html += '<div class="block-artist block-album boxshadow clearfix1"><div class="art-img 123456789">' + result['album'][response].album_thumb + ' ' + result['album'][response].audio_play_call + '</div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['album'][response].url + '" title="' + result['album'][response].name + '" class="art-ttl">' + result['album'][response].name + '</a><div class="subttl">' + result['album'][response].rel_date + ' | ' + result['album'][response].lang + '</div></div>' + result['album'][response].three_dots_menu + '</div></div>';
+                            });
+                        } else {
+                            response_html += '<div class="listing clearfix1" id="load_more_content"><div class="nodata">No results found for ' + $("#search_keyword").val();
+                            +'</div></div>';
+                        }
+                    } else if (tab_id == 'tab6') {
+                       if (result['playlist'] && result['playlist'].length > 0) {
+							response_html +='<div class="block-cont clearfix1"><div class="micro-audioPlaylist" id="load_more_content">';
+                            $.each(result['playlist'], function (response) {
+                                response_html +='<div class="block-artist block-album boxshadow clearfix1"><div class="art-img clearfix1 '+result['playlist'][response].imageclass +'">' + result['playlist'][response].playlist_thumb;
+								response_html +=result['playlist'][response].audio_play_call + '</div>';
+								response_html +='<div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['playlist'][response].url + '" title="' + result['playlist'][response].name + '">' + result['playlist'][response].name + '</a><div class="subttl">' + result['playlist'][response].no_of_songs + ' Songs</div></div>';
+								response_html +=result['playlist'][response].three_dots_menu + '</div></div>';
+                            });
+						response_html +='</div></div>'	
+                        } else {
+                            response_html += '<div class="listing clearfix1" ><div class="nodata">No results found for ' + $("#search_keyword").val();
+                            +'</div></div>';
+                        }
+                    } else if (tab_id == 'tab7') {
+                        if (result['radio'] && result['radio'].length > 0) {
+                            $.each(result['radio'], function (response) {
+                                response_html += '<div class="block-artist block-radio boxshadow clearfix1"><div class="liveradio-img">' + result['radio'][response].radio_thumb + '<a href="javascript:void(0)" class="hovercont" onclick="' + result['radio'][response].play_call + '" ><span class="icon-ic_play" id="' + result['radio'][response].id + '"></span></a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['radio'][response].url + '"class="art-ttl">' + result['radio'][response].name + '</a><div class="subttl">Hindi</div></div>' + result['radio'][response].three_dots + '</div></div>';
+                            });
+                        } else {
+                            response_html += '<div class="listing clearfix1" id="load_more_content"><div class="nodata">No results found for ' + $("#search_keyword").val();
+                            +'</div></div>';
+                        }
+                    } else if (tab_id == 'tab8') {
+                        if ((result['video'] && result['video'].length > 0) || (result['vplaylist'] && result['vplaylist'].length > 0)) {
+                            if (result['video'] && result['video'].length > 0) {
+                                response_html += '<div class="block-head clearfix1"><h3>Videos</h3>';
+                                if (result['video'].length > 11) {
+                                    response_html += '<a href="javascript:void(0)" value="videos" class="search_viewall">View all</a>';
+                                }
+                                response_html += '</div><div class="block-content clearfix1">';
+                                $.each(result['video'], function (response) {
+                                    response_html += '<div class="block-artist block-vdo boxshadow clearfix1"><div class="musicvdo-img">' + result['video'][response].video_thumb + ' ' + result['video'][response].play_call + '</div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['video'][response].url + '" class="art-ttl" title="' + result['video'][response].name + '">' + result['video'][response].name + '</a><div class="subttl">' + result['video'][response].album_name + '</div></div>' + result['video'][response].three_dots + '</div></div>';
+                                });
+                                response_html += '</div>';
+                            }
+                            if (result['vplaylist'] && result['vplaylist'].length > 0) {
+                                response_html += '<div class="block-head clearfix1"><h3>Video Playlists</h3>';
+                                if (result['vplaylist'].length > 11) {
+                                    response_html += '<a href="javascript:void(0)" value="vplaylist" class="search_viewall">View all</a>';
+                                }
+                                response_html += '</div><div class="block-content clearfix1">';
+                                $.each(result['vplaylist'], function (response) {
+                                    response_html += '<div class="bg-video"><div class="block-artist block-vdo boxshadow clearfix1"><div class="musicvdo-img">' + result['vplaylist'][response].video_thumb + ' ' + result['vplaylist'][response].play_call + '</div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['vplaylist'][response].url + '" class="art-ttl" >' + result['vplaylist'][response].name + '</a><div class="subttl">' + result['vplaylist'][response].no_songs + ' Videos</div></div><a href="javascript:void(0)" class="dots icon-ic_more_ver_1-05"></a></div></div></div>';
+                                });
+                                response_html += '</div>';
+                            }
+                        } else {
+                            response_html += '<div class="listing clearfix1" id="load_more_content"><div class="nodata">No results found for ' + $("#search_keyword").val();
+                            +'</div></div>';
+                        }
+                    } else if (tab_id == 'tab9') {
+                        if ((result['tvshow'] && result['tvshow'].length > 0) || (result['tvepisode'] && result['tvepisode'].length > 0)) {
+                            if (result['tvshow'] && result['tvshow'].length > 0) {
+                                response_html += '<div class="block-head clearfix1"><h3>TV Shows</h3>';
+                                if (result['tvshow'].length > 11) {
+                                    response_html += '<a href="javascript:void(0)" value="tvshows" class="search_viewall">View all</a>';
+                                }
+                                response_html += '</div>';
+                                response_html += '<div class="block-content clearfix1" id="tvshowsearch">';
+                                $.each(result['tvshow'], function (response) {
+                                    response_html += '<div class="tvs-block-artist boxshadow clearfix1"><div class="tvs-img"><a id="pajax_a" href="' + result['tvshow'][response].url + '" title="' + result['tvshow'][response].name + '" >' + result['tvshow'][response].tvshow_thumb + '</a><div id="movie_id_' + result['tvshow'][response].id + '" class="movieblock_add icon-ic_watchlist_add" onclick="' + result['tvshow'][response].watchlist_call + '"></div></a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['tvshow'][response].url + '" class="art-ttl">' + result['tvshow'][response].name + '</a><div class="subttl">' + result['tvshow'][response].language + '  </div></div></div></div>';
+                                });
+                                response_html += '</div>';
+                            }
+                            if (result['tvepisode'] && result['tvepisode'].length > 0) {
+                                response_html += '<div class="block-head clearfix1"><h3>TV Episodes</h3>';
+                                if (result['tvepisode'].length > 11) {
+                                    response_html += '<a href="javascript:void(0)" value="tvepisodes" class="search_viewall">View all</a>';
+                                }
+                                response_html += '</div>';
+                                response_html += '<div class="block-content clearfix1" id="tvepisodesearch">';
+                                $.each(result['tvepisode'], function (response) {
+                                    response_html += '<div class="block-artist block-tveps boxshadow clearfix1"><div class="tveps-img">' + result['tvepisode'][response].tvepisode_thumb + '<a class="hovercont" id="pajax_a" href="' + result['tvepisode'][response].url + '"><div class="movieblock_add icon-watchlist_add-72"></div><span class="icon-ic_play"></span></a><div id="movie_id_' + result['tvepisode'][response].id + '"  class="movieblock_add icon-watchlist_add-72" onclick="' + result['tvepisode'][response].watchlist_call + '"></div><a href="javascript:void(0)" class="icon-ic_play"></a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['tvepisode'][response].url + '" class="art-ttl">' + result['tvepisode'][response].name + '</a><div class="subttl">' + result['tvepisode'][response].showname + '</div></div></div></div>';
+                                });
+                                response_html += '</div>';
+                            }
+                        } else {
+                            response_html += '<div class="listing clearfix1" id="load_more_content"><div class="nodata">No results found for ' + $("#search_keyword").val();
+                            +'</div></div>';
+                        }
+                    } else if (tab_id == 'tab10') {
+                        if (result['tvepisode'] && result['tvepisode'].length > 0) {
+                            response_html += '<div class="block-head clearfix1"><h3>TV Episodes</h3></div>';
+                            response_html += '<div class="block-content clearfix1">';
+                            $.each(result['tvepisode'], function (response) {
+                                response_html += '<div class="block-artist block-tveps boxshadow clearfix1"><div class="tveps-img">' + result['tvepisode'][response].tvepisode_thumb + '<a class="hovercont"id="pajax_a" href="' + result['tvepisode'][response].url + '" ><div class="movieblock_add icon-watchlist_add-72"></div><span class="icon-ic_play"></span></a><div id="movie_id_' + result['tvepisode'][response].id + '"  class="movieblock_add icon-watchlist_add-72" onclick="' + result['tvepisode'][response].watchlist_call + '"></div><a href="javascript:void(0)" class="icon-ic_play"></a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['tvepisode'][response].url + '" class="art-ttl">' + result['tvepisode'][response].name + '</a><div class="subttl">' + result['tvepisode'][response].showname + '</div></div></div></div>';
+                            });
+                            response_html += '</div>';
+                        } else {
+                            response_html += '<div class="listing clearfix1" id="load_more_content"><div class="nodata">No results found for ' + $("#search_keyword").val();
+                            +'</div></div>';
+                        }
+					} else if (tab_id == 'tab11') {
+                        if ((result['shortfilms'] && result['shortfilms'].length > 0)) {
+                                response_html += '<div class="block-head clearfix1"><h3>Short Films</h3>';
+                                response_html += '</div><div class="block-content clearfix1">';
+                                $.each(result['shortfilms'], function (response) {
+                                    response_html += '<div class="movie-block-artist boxshadow clearfix1"><div class="movie-img"><a id="pajax_a" href="' + result['shortfilms'][response].url + '">' + result['shortfilms'][response].movie_thumb + '</a><div id="movie_id_' + result['shortfilms'][response].id + '" class="movieblock_add icon-ic_watchlist_add" onclick="' + result['shortfilms'][response].watchlist_call + '"></div>' + result['shortfilms'][response].is_rent;
+                                    response_html += '<div class="artistmovieover">' + result['shortfilms'][response].censor_certificate + '<div class="movie-details">' + result['shortfilms'][response].genre + '</div>';
+                                    response_html += '<div class="users-rating"><span class="users">USER\'S rating</span> <span>' + result['shortfilms'][response].rating + ' / 10</span></div><div class="movie-actions"><a class="btn-highlight" href="' + result['shortfilms'][response].url + '">Play</a></div><div class="movie-close"> <i class="icon-ic_cancel"></i></div><div class="clear"></div></div></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['shortfilms'][response].url + '" title="' + result['shortfilms'][response].name + '"> ' + result['shortfilms'][response].name + '</a><div class="subttl">' + result['shortfilms'][response].date_lang + '</div></div></div></div>';
+                                });
+                                response_html += '</div>';
+                        }
+                        else {
+                            response_html += '<div class="listing clearfix1" id="load_more_content"><div class="nodata">No results found for ' + $("#search_keyword").val();
+                            +'</div></div>';
+                        }
+                    }
+                    if (result.loadmore != ' ' || result.loadmore != undefined || result.loadmore != 'undefined') {
+                        $('.load_more_button_search').remove();
+                        response_html += ' ' + result.loadmore;
+
+                    }
+                    $("#searchloader").hide();
+                    $("#search_flag").val('yes');
+                    $(".tagsCont").hide();
+                    $('.loading').remove();
+                    $('.newSearch').addClass('open');
+                    if ($('.ha_player').hasClass('hide_audioPlayer')) {
+                        $('.newSearch .search-results').removeClass('playerOn');
+                    } else {
+                        $('.newSearch .search-results').addClass('playerOn');
+                    }
+                    $(".postSearch").css("display:block");
+                    $(".preSearch").css("display:none");
+                    $('body').addClass('fixed');
+                    $(".preSearch").hide();
+                    $("." + tab_id).parent().parent().parent().next().children('div').hide();
+                    $(".postSearch").show();
+                    $("." + tab_id).addClass('active').siblings().removeClass('active');
+                    $("#s" + tab_id).show();
+                    $("#" + tab_id).html('');
+                    $("#s" + tab_id).html(response_html);
+                    if (type == 'video' || type == 'tvshow' || type == 'movies') {
+                        $('.load_more_button_search').remove();
+                    }
+                    isajax = false;
+
+                    if (isTouchDevice) {
+                        if ($('#stab1 .liveradio-carousal').length > 0) {
+                            $('#stab1 .liveradio-carousal').each(function () {
+                                me = $(this);
+                                me.removeClass('owl-carousel');
+                                me.addClass('touchScroll');
+                                me.find('.block-radio').css('margin-right', 10);
+                                me.find('.block-radio').css('width', 170);
+                                a = me.find('.block-radio').outerWidth(true) + 1;
+                                b = me.find('.block-radio').length;
+                                me.css('width', a * b);
+                                me.parent().css('overflow-x', 'auto');
+                                me.parent().css('overflow-y', 'hidden');
+                            });
+                        }
+                        if ($('.album-carousal').length > 0) {
+                            $('.album-carousal').each(function () {
+                                me = $(this);
+                                me.removeClass('owl-carousel');
+                                me.addClass('touchScroll');
+                                me.find('.block-album').css('margin-right', 10);
+                                me.find('.block-album').css('width', 170);
+                                a = me.find('.block-album').outerWidth(true) + 1;
+                                b = me.find('.block-album').length;
+                                me.css('width', a * b);
+                                me.parent().css('overflow-x', 'auto');
+                                me.parent().css('overflow-y', 'hidden');
+                            });
+                        }
+                        if ($('.blockmov-carousal').length > 0) {
+                            $('.blockmov-carousal').each(function () {
+                                me = $(this);
+                                me.removeClass('owl-carousel');
+                                me.addClass('touchScroll');
+                                me.find('.movie-block-artist').css('margin-right', 10);
+                                me.find('.movie-block-artist').css('width', 205);
+                                a = me.find('.movie-block-artist').outerWidth(true) + 1;
+                                b = me.find('.movie-block-artist').length;
+                                me.css('width', a * b);
+                                me.parent().css('overflow-x', 'auto');
+                                me.parent().css('overflow-y', 'hidden');
+                            });
+                        }
+                        if ($('.musicvdo-carousal').length > 0) {
+                            $('.musicvdo-carousal').each(function () {
+                                me = $(this);
+                                me.removeClass('owl-carousel');
+                                me.addClass('touchScroll');
+                                me.find('.block-vdo').css('margin-right', 10);
+                                me.find('.block-vdo').css('width', 233);
+                                a = me.find('.block-vdo').outerWidth(true) + 1;
+                                b = me.find('.block-vdo').length;
+                                me.css('width', a * b);
+                                me.parent().css('overflow-x', 'auto');
+                                me.parent().css('overflow-y', 'hidden');
+                            });
+                        }
+                        if ($('.art-carousal').length > 0) {
+                            $('.art-carousal').each(function () {
+                                me = $(this);
+                                me.removeClass('owl-carousel');
+                                me.addClass('touchScroll');
+                                me.find('.block-artist').css('margin-right', 10);
+                                me.find('.block-artist').css('width', 170);
+                                a = me.find('.block-artist').outerWidth(true) + 1;
+                                b = me.find('.block-artist').length;
+                                me.css('width', a * b);
+                                me.parent().css('overflow-x', 'auto');
+                                me.parent().css('overflow-y', 'hidden');
+                            });
+                        }
+						
+						if($('.micro-audioPlaylist-carousal').length > 0){
+								$('.micro-audioPlaylist-carousal').each(function(){
+									me = $(this);
+									me.removeClass('owl-carousel');
+									me.addClass('touchScroll');
+									me.find('.block-album').css('margin-right',10);
+									me.find('.block-album').css('width',170);
+									a = me.find('.block-album').outerWidth(true)+1;
+									b = me.find('.block-album').length;
+									me.css('width',a * b);
+									me.parent().css('overflow-x','auto');
+									me.parent().css('overflow-y','hidden');
+								});
+							}
+                    } else {
+                        $('.liveradio-carousal').owlCarousel(liveradiocarousal_options);
+                        $('.album-carousal').owlCarousel(albumcarousel_options);
+                        $('.blockmov-carousal').owlCarousel(movie_block_options);
+                        $('.musicvdo-carousal').owlCarousel(video_home_options);
+                        $('.art-carousal').owlCarousel(home_options);
+                        $('.tvhpick-carousal').owlCarousel(tvhpickcarousal_options);
+						$('.micro-audioPlaylist-carousal').owlCarousel(micro_audioPlaylist);
+                    }
+                    $('#movie_banner').html('');
+                    if ($("#category").val() == 'movie_dtl') {
+                        $('body').addClass('video-player-shortfilm');
+                    } else {
+                        $('body').removeClass('video-player-shortfilm');
+                    }
+                }
+            });
+        } else {
+            $("#searchloader").hide();
+            $(".preSearch").hide();
+            $(".postSearch").show();
+            $(".postSearch").show("fast", function () {
+                $("." + tab_id).parent().parent().parent().next().children('div').hide();
+                $("." + tab_id).addClass('active').siblings().removeClass('active');
+                $("#s" + tab_id).show("fast", function () {
+                    window.dispatchEvent(new Event('resize'));
+                });
+                $("#s" + tab_id).css("css", "block");
+            });
+
+        }
+        $(".resultOf").show();
+    } else {
+        $("#searchloader").hide();
+        console.log('Enter Keyword to Search');
+    }
+}
+$(document).ready(function () {
+    $(".searchlens").click(function () {
+        hun_usersearch();
+        $('#tags').val('');
+		setTimeout(function(){
+			$('#tags').focus();
+		},600); 
+        $(".resultOf").hide();
+        $('.preSearch').show();
+        $('.postSearch').hide();
+        $('.tagsCont').hide();
+    });
+
+    $("#signup-div").click(function () {
+        $("#signinform").slideUp("slow", function () {
+            $("#signup-div").addClass('btn-disable');
+            $("#signin-div").removeClass('btn-disable');
+            $("#signupform").slideDown("slow");
+        });
+    });
+
+    $("#signin-div").click(function () {
+        $("#signupform").slideUp("slow", function () {
+            $("#signin-div").addClass('btn-disable');
+            $("#signup-div").removeClass('btn-disable');
+            $("#signinform").slideDown("slow");
+        });
+    });
+
+    var hungamaLoginDetails1 = '';
+    if (hungamaGetCookie('h_profile')) {
+        hungamaLoginDetails1 = JSON.parse(hungamaGetCookie('h_profile'));
+        if (hungamaLoginDetails1['status'] == 1) {
+            user_first_name = hungamaLoginDetails1['firstName'];
+            user_last_name = hungamaLoginDetails1['lastName'];
+            user_name = hungamaLoginDetails1['userName'];
+            $("#user_myacc_fullname").html(user_first_name + ' ' + user_last_name);
+            $("#user_myacc_name").html(user_name);
+            $("#my_user_coint").html(hungamaLoginDetails1['user_gamification_data']['user_points']);
+            $("#my_user_rank").html(hungamaLoginDetails1['user_gamification_data']['user_rank']);
+            $("#my_user_badges").html(unescape(hungamaLoginDetails1['user_gamification_data']['user_challenge']));
+        }
+    }
+
+    /* $("#tags").on('input', function () {
+     hun_autosuggest();
+     });*/
+
+    var searchTimer;
+    var AUTOSUGGEST_TRIGGER_INTERVAL = 300;
+    var txtAutosuggest = $("#tags");
+    var triggerAjaxAutosuggest = function () {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(
+                function () {
+                    console.log("AUTOSUGGEST_TRIGGER_INTERVAL");
+                    hun_autosuggest();
+                },
+                AUTOSUGGEST_TRIGGER_INTERVAL
+                );
+        return true;
+    }
+
+    txtAutosuggest.bind("keyup", function (e) {
+        //if (e.keyCode == 13) { }
+        /*});
+        $('#tags').keypress(function (e) {*/
+        console.log('kepresss...');
+        if (e.keyCode == 13) {
+            var tab_id = 'tab1';
+            var queryTerm = $('#tags').val();
+			var queryTerm = queryTerm.replace(/(<([^>]+)>)/ig,"");
+            queryTerm = queryTerm.trim();
+            var category = $('#searchCat').html();
+            var subcat_query = '';
+            var subtype = '';
+            category = category.toLowerCase();
+            if (category == 'songs' || category == 'song') {
+                category = 'music';
+                subtype = 'audio_track';
+                tab_id = 'tab4';
+            } else if (category == 'albums' || category == 'album') {
+                category = 'music';
+                subtype = 'audio_album';
+                tab_id = 'tab5';
+            } else if (category == 'videos' || category == 'video') {
+                category = 'videos';
+                tab_id = 'tab8';
+            } else if (category == 'movies' || category == 'movie') {
+                category = 'movies';
+                tab_id = 'tab3';
+            } else if (category == 'artists' || category == 'artist') {
+                category = 'artist';
+                tab_id = 'tab2';
+            } else if (category == 'tv show' || category == 'tv shows') {
+                category = 'tvshow';
+                tab_id = 'tab9';
+            } else if (category == 'tv episodes' || category == 'tv episode') {
+                category = 'tvepisode';
+                tab_id = 'tab10';
+            } else if (category == 'playlists' || category == 'playlist') {
+                category = 'music';
+                subtype = 'playlist';
+                tab_id = 'tab6';
+            } else if (category == 'radio') {
+                category = 'music';
+                subtype = 'radio';
+                tab_id = 'tab7';
+			} else if (category == 'short film' || category == 'short films' || category == 'shortfilms') {
+                category = 'shortfilms';
+                tab_id = 'tab11';
+            }
+            if (queryTerm != '' && (queryTerm.trim().length >= 1)) {
+                var cookieStr = hungamaGetCookie('mysearchstring');
+                if (cookieStr != '') {
+                    cookieStr = queryTerm + '|' + cookieStr;
+                } else {
+                    cookieStr = queryTerm;
+                }
+                hungamaSetCookie('mysearchstring', cookieStr, 24 * 365 * 10);
+//                $('.newSearchClose').click();
+                //recentSearch(queryTerm, 'all', '', 'tab1');
+                recentSearch(queryTerm, category, subtype, tab_id);
+            } else {
+                messageShowpopup('Enter something to search ');
+            }
+        } else if (e.keyCode == 40) {
+            console.log('down arrow key pressed');
+            $('#ul_autosuggest').find('a').removeClass('active');
+            links = $('#ul_autosuggest').find('a');
+            links.eq(0).addClass('active').focus();
+            $('.tagsCont').show();
+        } else {
+            triggerAjaxAutosuggest();
+        }
+    });
+});
+//$('#ul_autosuggest').find('a').mouseOver(function(){
+$(document).on('mouseenter', '#ul_autosuggest a', function (e) {
+    $('#ul_autosuggest a').removeClass('active');
+    $(this).addClass('active');
+    $('.tagsCont').show();
+});
+
+//$(document).keydown(function(e) {
+$(document).on('keydown', '#ul_autosuggest a', function (e) {
+    //if($(document.activeElement).parents("#ul_autosuggest").length == 1 ) { 
+    //if(e){
+    var code = e.which;
+    //}	
+    //}
+    if (code === 38) { //up
+        e.preventDefault();
+        var ssAnchor = $('#ul_autosuggest').find('a');
+        $.each(ssAnchor, function (i) {
+            if ($(this).hasClass('active')) {
+                $(this).removeClass('active');
+                ssAnchor.eq(i - 1).addClass('active').focus();
+                return false;
+            } else {
+                return true;
+            }
+        });
+    } else if (code === 40) {
+        e.preventDefault();
+        var ssAnchor = $('#ul_autosuggest').find('a');
+        $.each(ssAnchor, function (i) {
+            if (i >= ssAnchor.length - 1) {
+                i = -1;
+            }
+            if ($(this).hasClass('active')) {
+                $(this).removeClass('active');
+                ssAnchor.eq(i + 1).addClass('active').focus();
+                return false;
+            } else {
+                return true;
+            }
+        });
+    }
+});
+
+$(document).on('click', '.load_more_button_search', function (e) {
+    e.preventDefault();
+    var limit = (parseInt($("#r_limit").val()));
+    var start = (parseInt($("#r_start").val()) + limit);
+    $("#r_start").val(start);
+    var search_page = $("#search_page").val();
+    var site_url;
+    var origin_url = $('#origin_url').val();
+    if (hungamaGetCookie('_hcntr')) {
+        country_code = hungamaGetCookie('_hcntr');
+    } else {
+        country_code = '';
+    }
+    var recent_keyword = $("#recent_keyword").val();
+    var type = $("#search_type").val();
+    var subtype = $("#search_subtype").val();
+    var searchKeyword = $('#search_keyword').val();
+    var tab_id = $('#search_tab').val();
+    var page_no = $("#search_page_no").val();
+    page_no = (parseInt(page_no) + 1);
+    searchUrl = gen_search_urls('viewSearchPage', '', '', subtype, searchKeyword, type, page_no);
+    searchUrl = searchUrl + '?_country=' + country_code;
+    site_url = encodeURI(site_url);
+    $.ajax({
+        type: 'GET',
+        dataType: "json",
+        url: searchUrl,
+        success: function (result) {
+            var response_html = '';
+            var search_tab_flag = $("#search_tab_flag").val();
+            if (tab_id == 'tab2') {
+                if (result['artist'] && result['artist'].length > 0) {
+                    $.each(result['artist'], function (response) {
+                        response_html += '<div class="block-artist boxshadow clearfix1"><a id="pajax_a" href="' + result['artist'][response].url + '" title="' + result['artist'][response].name + '">' + result['artist'][response].artist_thumb + '</a><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['artist'][response].url + '" title="' + result['artist'][response].name + '"  class="art-ttl">' + result['artist'][response].name + '</a></div><div class="follow"><a class="icon-ic_fallow" id="artist_id_' + result['artist'][response].id + '" href="javascript:void(0);" onclick="' + result['artist'][response].follow_call + '"></a></div></div></div>';
+                    });
+                }
+            } else if (tab_id == 'tab3') {
+                if (result['movie'] && result['movie'].length > 0) {
+                    $.each(result['movie'], function (response) {
+                        response_html += '<div class="movie-block-artist boxshadow clearfix1"><div class="movie-img"><a id="pajax_a" href="' + result['movie'][response].url + '">' + result['movie'][response].movie_thumb + '</a><div id="movie_id_' + result['movie'][response].id + '" class="movieblock_add icon-ic_watchlist_add" onclick="' + result['movie'][response].watchlist_call + '"></div>' + result['movie'][response].is_rent;
+                        response_html += '<div class="artistmovieover">' + result['movie'][response].censor_certificate + '<div class="movie-details">' + result['movie'][response].genre + '</div>';
+                        response_html += '<div class="users-rating"><span class="users">USER\'S rating</span> <span>' + result['movie'][response].rating + ' / 10</span></div><div class="movie-actions"><a class="btn-highlight" href="' + result['movie'][response].url + '">Play</a></div><div class="movie-close"> <i class="icon-ic_cancel"></i></div><div class="clear"></div></div></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['movie'][response].url + '" title="' + result['movie'][response].name + '"> ' + result['movie'][response].name + '</a><div class="subttl">' + result['movie'][response].date_lang + '</div></div></div></div>';
+                    });
+                } else if (result['collection'] && result['collection'].length > 0) {
+                    $.each(result['collection'], function (response) {
+                        response_html += '<div class="block-artist theme-artist block-album boxshadow clearfix1"><div class="art-img"><a id="pajax_a"  href="' + result['collection'][response].url + '" >' + result['collection'][response].collection_thumb + '</a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['collection'][response].url + '" title="' + result['collection'][response].name + '">' + result['collection'][response].name + '</a><div class="subttl">' + result['collection'][response].no_movies + ' Movies</div></div></div></div>';
+                    });
+                } else if(result['theme'] && result['theme'].length > 0) {
+                            $.each(result['theme'], function (response) {
+                                    response_html += '<div class="block-artist theme-artist block-album boxshadow clearfix1"><div class="art-img"><a id="pajax_a"  href="' + result['theme'][response].url + '" >' + result['theme'][response].theme_thumb + '</a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['theme'][response].url + '" title="' + result['theme'][response].name + '">' + result['theme'][response].name + '</a><div class="subttl">'  + result['theme'][response].no_movies + ' Movies</div></div></div></div>';
+                                });
+                            }
+            } else if (tab_id == 'tab4') {
+                if (result['song'] && result['song'].length > 0) {
+                    $.each(result['song'], function (response) {
+                        response_html += '<div class="' + result['song'][response].classsong + '"><div class="song"><div class="song-thmb">' + result['song'][response].song_thumb + ' ' + result['song'][response].audio_play_call + '</div><div class="song-name"><h4><a id="pajax_a" href="' + result['song'][response].url + '" title="' + result['song'][response].name + '">' + result['song'][response].name + '</a></h4><h5>' + result['song'][response].album_name + '</h5></div><div class="song-action">' + result['song'][response].three_dots_menu + '</div><div class="clear"></div></div></div>';
+                    });
+                }
+            } else if (tab_id == 'tab5') {
+                if (result['album'] && result['album'].length > 0) {
+                    $.each(result['album'], function (response) {
+                        response_html += '<div class="block-artist block-album boxshadow clearfix1"><div class="art-img 123456789">' + result['album'][response].album_thumb + ' ' + result['album'][response].audio_play_call + '</div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['album'][response].url + '" title="' + result['album'][response].name + '" class="art-ttl">' + result['album'][response].name + '</a><div class="subttl">' + result['album'][response].rel_date + ' | ' + result['album'][response].lang + '</div></div>' + result['album'][response].three_dots_menu + '</div></div>';
+                    });
+                }
+            } else if (tab_id == 'tab6') {
+                if (result['playlist'] && result['playlist'].length > 0) {
+                    //response_html +='<div class="block-cont clearfix1"><div class="micro-audioPlaylist">';
+                            $.each(result['playlist'], function (response) {
+                                response_html +='<div class="block-artist block-album boxshadow clearfix1"><div class="art-img clearfix1 '+result['playlist'][response].imageclass +'">' + result['playlist'][response].playlist_thumb;
+								response_html +=result['playlist'][response].audio_play_call + '</div>';
+								response_html +='<div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['playlist'][response].url + '" title="' + result['playlist'][response].name + '">' + result['playlist'][response].name+'</a><div class="subttl">' + result['playlist'][response].no_of_songs + ' Songs</div></div>';
+								response_html +=result['playlist'][response].three_dots_menu + '</div></div>';
+                            });
+						//response_html +='</div></div>'
+                }
+            } else if (tab_id == 'tab7') {
+                if (result['radio'] && result['radio'].length > 0) {
+                    $.each(result['radio'], function (response) {
+                        response_html += '<div class="block-artist block-radio boxshadow clearfix1"><div class="liveradio-img">' + result['radio'][response].radio_thumb + '<a href="javascript:void(0)" class="hovercont" onclick="' + result['radio'][response].play_call + '" ><span class="icon-ic_play" id="' + result['radio'][response].id + '"></span></a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['radio'][response].url + '"class="art-ttl">' + result['radio'][response].name + '</a><div class="subttl">Hindi</div></div>' + result['radio'][response].three_dots + '</div></div>';
+                    });
+                }
+            } else if (tab_id == 'tab8') {
+                //response_html += '<div id="load_more_content"><input type="hidden" class="rowcount" value="" />';
+                if (result['video'] && result['video'].length > 0) {
+                    $.each(result['video'], function (response) {
+                        response_html += '<div class="block-artist block-vdo boxshadow clearfix1"><div class="musicvdo-img">' + result['video'][response].video_thumb + ' ' + result['video'][response].play_call + '</div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['video'][response].url + '" class="art-ttl" title="' + result['video'][response].name + '">' + result['video'][response].name + '</a><div class="subttl">' + result['video'][response].album_name + '</div></div>' + result['video'][response].three_dots + '</div></div>';
+                    });
+                } else if (result['vplaylist'] && result['vplaylist'].length > 0) {
+                    $.each(result['vplaylist'], function (response) {
+                        response_html += '<div class="bg-video"><div class="block-artist block-vdo boxshadow clearfix1"><div class="musicvdo-img">' + result['vplaylist'][response].video_thumb + ' ' + result['vplaylist'][response].play_call + '</div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['vplaylist'][response].url + '" class="art-ttl" >' + result['vplaylist'][response].name + '</a><div class="subttl">' + result['vplaylist'][response].no_songs + ' Videos</div></div><a href="javascript:void(0)" class="dots icon-ic_more_ver_1-05"></a></div></div></div>';
+                    });
+                }
+            } else if (tab_id == 'tab9') {
+                if (result['tvshow'] && result['tvshow'].length > 0) {
+                    $.each(result['tvshow'], function (response) {
+                        response_html += '<div class="tvs-block-artist boxshadow clearfix1"><div class="tvs-img"><a id="pajax_a" href="' + result['tvshow'][response].url + '" title="' + result['tvshow'][response].name + '" >' + result['tvshow'][response].tvshow_thumb + '</a><div id="movie_id_' + result['tvshow'][response].id + '" class="movieblock_add icon-ic_watchlist_add" onclick="' + result['tvshow'][response].watchlist_call + '"></div></a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['tvshow'][response].url + '" class="art-ttl">' + result['tvshow'][response].name + '</a><div class="subttl">' + result['tvshow'][response].language + '  </div></div></div></div>';
+                    });
+                } else if (result['tvepisode'] && result['tvepisode'].length > 0) {
+                    $.each(result['tvepisode'], function (response) {
+                        response_html += '<div class="block-artist block-tveps boxshadow clearfix1"><div class="tveps-img">' + result['tvepisode'][response].tvepisode_thumb + '<a class="hovercont"  id="pajax_a" href="' + result['tvepisode'][response].url + '"><div class="movieblock_add icon-watchlist_add-72"></div><span class="icon-ic_play"></span></a><div id="movie_id_' + result['tvepisode'][response].id + '"  class="movieblock_add icon-watchlist_add-72" onclick="' + result['tvepisode'][response].watchlist_call + '"></div><a href="javascript:void(0)" class="icon-ic_play"></a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['tvepisode'][response].url + '" class="art-ttl">' + result['tvepisode'][response].name + '</a><div class="subttl">' + result['tvepisode'][response].showname + '</div></div></div></div>';
+                    });
+                }
+			} else if (tab_id == 'tab11') {
+                if (result['shortfilms'] && result['shortfilms'].length > 0) {
+                    $.each(result['shortfilms'], function (response) {
+                        response_html += '<div class="movie-block-artist boxshadow clearfix1"><div class="movie-img"><a id="pajax_a" href="' + result['shortfilms'][response].url + '">' + result['shortfilms'][response].movie_thumb + '</a><div id="movie_id_' + result['shortfilms'][response].id + '" class="movieblock_add icon-ic_watchlist_add" onclick="' + result['shortfilms'][response].watchlist_call + '"></div>' + result['shortfilms'][response].is_rent;
+                        response_html += '<div class="artistmovieover">' + result['shortfilms'][response].censor_certificate + '<div class="movie-details">' + result['shortfilms'][response].genre + '</div>';
+                        response_html += '<div class="users-rating"><span class="users">USER\'S rating</span> <span>' + result['shortfilms'][response].rating + ' / 10</span></div><div class="movie-actions"><a class="btn-highlight" href="' + result['shortfilms'][response].url + '">Play</a></div><div class="movie-close"> <i class="icon-ic_cancel"></i></div><div class="clear"></div></div></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['shortfilms'][response].url + '" title="' + result['shortfilms'][response].name + '"> ' + result['shortfilms'][response].name + '</a><div class="subttl">' + result['shortfilms'][response].date_lang + '</div></div></div></div>';
+                    });
+                }
+            }
+            if (result.loadmore != ' ' || result.loadmore != undefined) {
+                $('.load_more_button_search').remove();
+                response_html += ' ' + result.loadmore;
+            }
+            $("#searchloader").hide();
+            $("#search_flag").val('yes');
+            $(".tagsCont").hide();
+            $('.loading').remove();
+            $('.newSearch').addClass('open');
+            $(".postSearch").css("display:block");
+            $(".preSearch").css("display:none");
+            $('body').addClass('fixed');
+            $(".preSearch").hide();
+            $("." + tab_id).parent().parent().parent().next().children('div').hide();
+            $(".postSearch").show();
+            $("." + tab_id).addClass('active').siblings().removeClass('active');
+            $("#s" + tab_id).show();
+            $(".load_more_button_search").html('');
+            if (tab_id == 'tab2') {
+                $("#stab2 #followed-wrapper #artistsearch").append(response_html);
+            } else if (tab_id == 'tab9') {
+                if (type == 'tvepisode') {
+                    $("#stab9 #tvepisodesearch").append(response_html);
+                } else {
+                    $("#stab9 #tvshowsearch").append(response_html);
+                }
+            }else if (tab_id == 'tab6') {
+                        $("#stab6 .micro-audioPlaylist").append(response_html);
+                } else if (tab_id == 'tab3') {
+                if (type == 'movies' || type == 'movie') {
+                    $("#stab3 #moviesearch").append(response_html);
+                } else if(type == 'collection' ){
+                    $("#stab3 #collectionsearch").append(response_html);
+                } else if(type == 'theme' ){
+                    $("#stab3 #themesearch").append(response_html);
+                }
+            } else {
+                $("#s" + tab_id).append(response_html);
+            }
+            return;
+
+            $('.liveradio-carousal').owlCarousel(liveradio_options);
+            $('.album-carousal').owlCarousel(albumcarousel_options);
+            $('.blockmov-carousal').owlCarousel(movie_block_options);
+            $('.musicvdo-carousal').owlCarousel(video_home_options);
+            $('.art-carousal').owlCarousel(home_options);
+            $('.tvhpick-carousal').owlCarousel(tvhpickcarousal_options);
+			$('.micro-audioPlaylist-carousal').owlCarousel(micro_audioPlaylist);
+            $('#movie_banner').html('');
+            if ($("#category").val() == 'movie_dtl') {
+                $('body').addClass('video-player-shortfilm');
+            } else {
+                $('body').removeClass('video-player-shortfilm');
+            }
+        }
+    });
+    return false;
+});
+function search_load_more() {
+    var tabs = $('.scroll_mobile a.active').html();
+    tabs = tabs.toLowerCase();
+    var tab_id = '';
+    if (tabs == 'all') {
+        tab_id = 'tab1';
+    } else if (tabs == 'songs') {
+        tab_id = 'tab4';
+    } else if (tabs == 'albums') {
+        tab_id = 'tab5';
+    } else if (tabs == 'playlists') {
+        tab_id = 'tab6';
+    } else if (tabs == 'radio') {
+        tab_id = 'tab7';
+    } else if (tabs == 'videos') {
+        tab_id = 'tab8';
+    } else if (tabs == 'movies') {
+        tab_id = 'tab3';
+    } else if (tabs == 'artists') {
+        tab_id = 'tab2';
+    } else if (tabs == 'tv shows' || tabs == 'tv episodes') {
+        tab_id = 'tab9';
+	} else if (tabs == 'short films' || tabs == 'short film') {
+        tab_id = 'tab11';	
+    }
+    $('#search_tab').val(tab_id);
+
+
+    var limit = (parseInt($("#s" + tab_id + " #r_limit").val()));
+    if (tab_id != 'tab1') {
+        //var limit = (parseInt($("#r_limit").val()));
+        var start = (parseInt($("#r_start").val()) + limit);
+        $("#r_start").val(start);
+        var search_page = $("#search_page").val();
+        var site_url;
+        var origin_url = $('#origin_url').val();
+        if (hungamaGetCookie('_hcntr')) {
+            country_code = hungamaGetCookie('_hcntr');
+        } else {
+            country_code = '';
+        }
+        var recent_keyword = $("#recent_keyword").val();
+        var type = $("#search_type").val();
+        var subtype = $("#search_subtype").val();
+        var searchKeyword = $('#search_keyword').val();
+        var tab_id = $('#search_tab').val();
+        var page_no = $("#search_page_no").val();
+
+        page_no = (parseInt(page_no) + 1);
+        var presearch = $('.preSearch').css('display');
+        console.log(presearch);
+        if (limit > 0 && (presearch == 'none')) {
+            searchUrl = gen_search_urls('viewSearchPage', '', '', subtype, searchKeyword, type, page_no);
+            searchUrl = searchUrl + '?_country=' + country_code;
+            site_url = encodeURI(site_url);
+            $.ajax({
+                type: 'GET',
+                dataType: "json",
+                url: searchUrl,
+                success: function (result) {
+                    var response_html = '';
+                    var search_tab_flag = $("#search_tab_flag").val();
+                    if (tab_id == 'tab2') {
+                        if (result['artist'] && result['artist'].length > 0) {
+                            $.each(result['artist'], function (response) {
+                                response_html += '<div class="block-artist boxshadow clearfix1"><a id="pajax_a" href="' + result['artist'][response].url + '" title="' + result['artist'][response].name + '">' + result['artist'][response].artist_thumb + '</a><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['artist'][response].url + '" title="' + result['artist'][response].name + '"  class="art-ttl">' + result['artist'][response].name + '</a></div><div class="follow"><a class="icon-ic_fallow" id="artist_id_' + result['artist'][response].id + '" href="javascript:void(0);" onclick="' + result['artist'][response].follow_call + '"></a></div></div></div>';
+                            });
+                        }
+                    } else if (tab_id == 'tab3') {
+                        if (result['movie'] && result['movie'].length > 0) {
+                            $.each(result['movie'], function (response) {
+                                response_html += '<div class="movie-block-artist boxshadow clearfix1"><div class="movie-img"><a id="pajax_a" href="' + result['movie'][response].url + '">' + result['movie'][response].movie_thumb + '</a><div id="movie_id_' + result['movie'][response].id + '" class="movieblock_add icon-ic_watchlist_add" onclick="' + result['movie'][response].watchlist_call + '"></div>' + result['movie'][response].is_rent;
+                                response_html += '<div class="artistmovieover">' + result['movie'][response].censor_certificate + '<div class="movie-details">' + result['movie'][response].genre + '</div>';
+                                response_html += '<div class="users-rating"><span class="users">USER\'S rating</span> <span>' + result['movie'][response].rating + ' / 10</span></div><div class="movie-actions"><a class="btn-highlight" href="' + result['movie'][response].url + '">Play</a></div><div class="movie-close"> <i class="icon-ic_cancel"></i></div><div class="clear"></div></div></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['movie'][response].url + '" title="' + result['movie'][response].name + '"> ' + result['movie'][response].name + '</a><div class="subttl">' + result['movie'][response].date_lang + '</div></div></div></div>';
+                            });
+                        } else if (result['collection'] && result['collection'].length > 0) {
+                            $.each(result['collection'], function (response) {
+                                response_html += '<div class="block-artist theme-artist block-album boxshadow clearfix1"><div class="art-img"><a id="pajax_a"  href="' + result['collection'][response].url + '" >' + result['collection'][response].collection_thumb + '</a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['collection'][response].url + '" title="' + result['collection'][response].name + '">' + result['collection'][response].name + '</a><div class="subttl">' + result['collection'][response].no_movies + ' Movies</div></div></div></div>';
+                            });
+                        }   else if(result['theme'] && result['theme'].length > 0) {
+                            $.each(result['theme'], function (response) {
+                                    response_html += '<div class="block-artist theme-artist block-album boxshadow clearfix1"><div class="art-img"><a id="pajax_a"  href="' + result['theme'][response].url + '" >' + result['theme'][response].theme_thumb + '</a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['theme'][response].url + '" title="' + result['theme'][response].name + '">' + result['theme'][response].name + '</a><div class="subttl">'  + result['theme'][response].no_movies + ' Movies</div></div></div></div>';
+                                });
+                            }
+                    } else if (tab_id == 'tab4') {
+                        if (result['song'] && result['song'].length > 0) {
+                            $.each(result['song'], function (response) {
+                                response_html += '<div class="' + result['song'][response].classsong + '"><div class="song"><div class="song-thmb">' + result['song'][response].song_thumb + ' ' + result['song'][response].audio_play_call + '</div><div class="song-name"><h4><a id="pajax_a" href="' + result['song'][response].url + '" title="' + result['song'][response].name + '">' + result['song'][response].name + '</a></h4><h5>' + result['song'][response].album_name + '</h5></div><div class="song-action">' + result['song'][response].three_dots_menu + '</div><div class="clear"></div></div></div>';
+                            });
+                        }
+                    } else if (tab_id == 'tab5') {
+                        if (result['album'] && result['album'].length > 0) {
+                            $.each(result['album'], function (response) {
+                                response_html += '<div class="block-artist block-album boxshadow clearfix1"><div class="art-img 123456789">' + result['album'][response].album_thumb + ' ' + result['album'][response].audio_play_call + '</div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['album'][response].url + '" title="' + result['album'][response].name + '" class="art-ttl">' + result['album'][response].name + '</a><div class="subttl">' + result['album'][response].rel_date + ' | ' + result['album'][response].lang + '</div></div>' + result['album'][response].three_dots_menu + '</div></div>';
+                            });
+                        }
+                    } else if (tab_id == 'tab6') {
+                        if (result['playlist'] && result['playlist'].length > 0) {
+                            //response_html +='<div class="block-cont clearfix1"><div class="micro-audioPlaylist">';
+                            $.each(result['playlist'], function (response) {
+                                response_html +='<div class="block-artist block-album boxshadow clearfix1"><div class="art-img clearfix1 '+result['playlist'][response].imageclass +'">' + result['playlist'][response].playlist_thumb;
+								response_html +=result['playlist'][response].audio_play_call + '</div>';
+								response_html +='<div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['playlist'][response].url + '" title="' + result['playlist'][response].name + '">' + result['playlist'][response].name +'</a><div class="subttl">' + result['playlist'][response].no_of_songs + ' Songs</div></div>';
+								response_html +=result['playlist'][response].three_dots_menu + '</div></div>';
+                            });
+						//response_html +='</div>789</div>'
+                        }
+                    } else if (tab_id == 'tab7') {
+                        if (result['radio'] && result['radio'].length > 0) {
+                            $.each(result['radio'], function (response) {
+                                response_html += '<div class="block-artist block-radio boxshadow clearfix1"><div class="liveradio-img">' + result['radio'][response].radio_thumb + '<a href="javascript:void(0)" class="hovercont" onclick="' + result['radio'][response].play_call + '" ><span class="icon-ic_play" id="' + result['radio'][response].id + '"></span></a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['radio'][response].url + '"class="art-ttl">' + result['radio'][response].name + '</a><div class="subttl">Hindi</div></div>' + result['radio'][response].three_dots + '</div></div>';
+                            });
+                        }
+                    } else if (tab_id == 'tab8') {
+                        //response_html += '<div id="load_more_content"><input type="hidden" class="rowcount" value="" />';
+                        if (result['video'] && result['video'].length > 0) {
+                            $.each(result['video'], function (response) {
+                                response_html += '<div class="block-artist block-vdo boxshadow clearfix1"><div class="musicvdo-img">' + result['video'][response].video_thumb + ' ' + result['video'][response].play_call + '</div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['video'][response].url + '" class="art-ttl" title="' + result['video'][response].name + '">' + result['video'][response].name + '</a><div class="subttl">' + result['video'][response].album_name + '</div></div>' + result['video'][response].three_dots + '</div></div>';
+                            });
+                        } else if (result['vplaylist'] && result['vplaylist'].length > 0) {
+                            $.each(result['vplaylist'], function (response) {
+                                response_html += '<div class="bg-video"><div class="block-artist block-vdo boxshadow clearfix1"><div class="musicvdo-img">' + result['vplaylist'][response].video_thumb + ' ' + result['vplaylist'][response].play_call + '</div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['vplaylist'][response].url + '" class="art-ttl" >' + result['vplaylist'][response].name + '</a><div class="subttl">' + result['vplaylist'][response].no_songs + ' Videos</div></div><a href="javascript:void(0)" class="dots icon-ic_more_ver_1-05"></a></div></div></div>';
+                            });
+                        }
+                    } else if (tab_id == 'tab9') {
+                        if (result['tvshow'] && result['tvshow'].length > 0) {
+                            $.each(result['tvshow'], function (response) {
+                                response_html += '<div class="tvs-block-artist boxshadow clearfix1"><div class="tvs-img"><a id="pajax_a" href="' + result['tvshow'][response].url + '" title="' + result['tvshow'][response].name + '" >' + result['tvshow'][response].tvshow_thumb + '</a><div id="movie_id_' + result['tvshow'][response].id + '" class="movieblock_add icon-ic_watchlist_add" onclick="' + result['tvshow'][response].watchlist_call + '"></div></a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['tvshow'][response].url + '" class="art-ttl">' + result['tvshow'][response].name + '</a><div class="subttl">' + result['tvshow'][response].language + '  </div></div></div></div>';
+                            });
+                        } else if (result['tvepisode'] && result['tvepisode'].length > 0) {
+                            $.each(result['tvepisode'], function (response) {
+                                response_html += '<div class="block-artist block-tveps boxshadow clearfix1"><div class="tveps-img">' + result['tvepisode'][response].tvepisode_thumb + '<a class="hovercont"  id="pajax_a" href="' + result['tvepisode'][response].url + '"><div class="movieblock_add icon-watchlist_add-72"></div><span class="icon-ic_play"></span></a><div id="movie_id_' + result['tvepisode'][response].id + '"  class="movieblock_add icon-watchlist_add-72" onclick="' + result['tvepisode'][response].watchlist_call + '"></div><a  id="pajax_a" href="' + result['tvepisode'][response].url + '" class="icon-ic_play"></a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['tvepisode'][response].url + '" class="art-ttl">' + result['tvepisode'][response].name + '</a><div class="subttl">' + result['tvepisode'][response].showname + '</div></div></div></div>';
+                            });
+                        }
+					} else if (tab_id == 'tab11') {
+                        if (result['shortfilms'] && result['shortfilms'].length > 0) {
+                            $.each(result['shortfilms'], function (response) {
+                                response_html += '<div class="movie-block-artist boxshadow clearfix1"><div class="movie-img"><a id="pajax_a" href="' + result['shortfilms'][response].url + '">' + result['shortfilms'][response].movie_thumb + '</a><div id="movie_id_' + result['shortfilms'][response].id + '" class="movieblock_add icon-ic_watchlist_add" onclick="' + result['shortfilms'][response].watchlist_call + '"></div>' + result['shortfilms'][response].is_rent;
+                                response_html += '<div class="artistmovieover">' + result['shortfilms'][response].censor_certificate + '<div class="movie-details">' + result['shortfilms'][response].genre + '</div>';
+                                response_html += '<div class="users-rating"><span class="users">USER\'S rating</span> <span>' + result['shortfilms'][response].rating + ' / 10</span></div><div class="movie-actions"><a class="btn-highlight" href="' + result['shortfilms'][response].url + '">Play</a></div><div class="movie-close"> <i class="icon-ic_cancel"></i></div><div class="clear"></div></div></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['shortfilms'][response].url + '" title="' + result['shortfilms'][response].name + '"> ' + result['shortfilms'][response].name + '</a><div class="subttl">' + result['shortfilms'][response].date_lang + '</div></div></div></div>';
+                            });
+                        } 
+                    }
+                    if (result.loadmore != ' ' || result.loadmore != undefined) {
+                        $('.load_more_button_search').remove();
+                        response_html += ' ' + result.loadmore;
+                    }
+                    $("#searchloader").hide();
+                    $("#search_flag").val('yes');
+                    $(".tagsCont").hide();
+                    $('.loading').remove();
+                    $('.newSearch').addClass('open');
+                    $(".postSearch").css("display:block");
+                    $(".preSearch").css("display:none");
+                    $('body').addClass('fixed');
+                    $(".preSearch").hide();
+                    $("." + tab_id).parent().parent().parent().next().children('div').hide();
+                    $(".postSearch").show();
+                    $("." + tab_id).addClass('active').siblings().removeClass('active');
+                    $("#s" + tab_id).show();
+                    //$(".load_more_button_search").html('');
+                    //$("#" + tab_id).append(response_html);
+                    if (tab_id == 'tab2') {
+                        $("#stab2 #followed-wrapper #artistsearch").append(response_html);
+                    } else if (tab_id == 'tab9') {
+                        if (type == 'tvepisode' || type == 'tvepisodes') {
+                            $("#stab9 #tvepisodesearch").append(response_html);
+                        } else {
+                            $("#stab9 #tvshowsearch").append(response_html);
+                        }
+                    } else if (tab_id == 'tab6') {
+                        $("#stab6 .micro-audioPlaylist").append(response_html);
+                    } else if (tab_id == 'tab3') {
+                        if (type == 'movies' || type == 'movie') {
+                            $("#stab3 #moviesearch").append(response_html);
+                        } else if(type == 'collection' ){
+                            $("#stab3 #collectionsearch").append(response_html);
+                        } else if(type == 'theme' ){
+                            $("#stab3 #themesearch").append(response_html);
+                        }
+                    } else {
+                        $("#s" + tab_id).append(response_html);
+                    }
+                    isajax = false;
+                    return;
+
+                    $('.liveradio-carousal').owlCarousel(liveradio_options);
+                    $('.album-carousal').owlCarousel(albumcarousel_options);
+                    $('.blockmov-carousal').owlCarousel(movie_block_options);
+                    $('.musicvdo-carousal').owlCarousel(video_home_options);
+                    $('.art-carousal').owlCarousel(home_options);
+                    $('.tvhpick-carousal').owlCarousel(tvhpickcarousal_options);
+					$('.micro-audioPlaylist-carousal').owlCarousel(micro_audioPlaylist);
+                    $('#movie_banner').html('');
+                    if ($("#category").val() == 'movie_dtl') {
+                        $('body').addClass('video-player-shortfilm');
+                    } else {
+                        $('body').removeClass('video-player-shortfilm');
+                    }
+                }
+            });
+        }
+    }
+    return false;
+}
+
+
+$(document).on('click', '.search_viewall', function (e) {
+    e.preventDefault();
+    if (hungamaGetCookie('_hcntr')) {
+        country_code = hungamaGetCookie('_hcntr');
+    } else {
+        country_code = '';
+    }
+    var type = $(this).attr('value');
+    var page_no = $("#search_page_no").val();
+    var query = $("#search_keyword").val();
+//    page_no = (parseInt(page_no) + 1);
+    page_no = (parseInt(page_no));
+    searchUrl = gen_search_urls('viewSearchPage', '', '', '', query, type, page_no);
+    searchUrl = searchUrl + '?_country=' + country_code;
+    $.ajax({
+        type: 'POST',
+        url: searchUrl,
+        dataType: 'json',
+        success: function (result) {
+            var response_html = '';
+            if (result['tvshow'] && result['tvshow'].length > 0) {
+                response_html += '<div class="block-head clearfix1"><h3>TV Shows</h3></div>';
+                response_html += '<div class="block-content clearfix1" id="tvshowsearch">';
+                $.each(result['tvshow'], function (response) {
+                    response_html += '<div class="tvs-block-artist boxshadow clearfix1"><div class="tvs-img"><a id="pajax_a" href="' + result['tvshow'][response].url + '" title="' + result['tvshow'][response].name + '" >' + result['tvshow'][response].tvshow_thumb + '</a><div id="movie_id_' + result['tvshow'][response].id + '" class="movieblock_add icon-ic_watchlist_add" onclick="' + result['tvshow'][response].watchlist_call + '"></div></a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['tvshow'][response].url + '" class="art-ttl">' + result['tvshow'][response].name + '</a><div class="subttl">' + result['tvshow'][response].language + '  </div></div></div></div>';
+                });
+                response_html += '</div>';
+            } else if (result['tvepisode'] && result['tvepisode'].length > 0) {
+                response_html += '<div class="block-head clearfix1"><h3>TV Episodes</h3></div>';
+                response_html += '<div class="block-content clearfix1" id="tvepisodesearch">';
+                $.each(result['tvepisode'], function (response) {
+                    response_html += '<div class="block-artist block-tveps boxshadow clearfix1"><div class="tveps-img">' + result['tvepisode'][response].tvepisode_thumb + '<a class="hovercont"  id="pajax_a" href="' + result['tvepisode'][response].url + '"><div class="movieblock_add icon-watchlist_add-72"></div><span class="icon-ic_play"></span></a><div id="movie_id_' + result['tvepisode'][response].id + '"  class="movieblock_add icon-watchlist_add-72" onclick="' + result['tvepisode'][response].watchlist_call + '"></div><a href="javascript:void(0)" class="icon-ic_play"></a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['tvepisode'][response].url + '" class="art-ttl">' + result['tvepisode'][response].name + '</a><div class="subttl">' + result['tvepisode'][response].showname + '</div></div></div></div>';
+                });
+                response_html += '</div>';
+            } else if (result['video'] && result['video'].length > 0) {
+                response_html += '<div class="block-head clearfix1"><h3>Videos</h3></div><div class="block-content clearfix1">';
+                $.each(result['video'], function (response) {
+                    response_html += '<div class="block-artist block-vdo boxshadow clearfix1"><div class="musicvdo-img">' + result['video'][response].video_thumb + ' ' + result['video'][response].play_call + '</div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['video'][response].url + '" class="art-ttl" title="' + result['video'][response].name + '">' + result['video'][response].name + '</a><div class="subttl">' + result['video'][response].album_name + '</div></div>' + result['video'][response].three_dots + '</div></div>';
+                });
+            }
+            else if (result['vplaylist'] && result['vplaylist'].length > 0) {
+                response_html += '<div class="block-head clearfix1"><h3>Video Playlists</h3></div><div class="block-content clearfix1">';
+                $.each(result['vplaylist'], function (response) {
+                    response_html += '<div class="bg-video"><div class="block-artist block-vdo boxshadow clearfix1"><div class="musicvdo-img">' + result['vplaylist'][response].video_thumb + '' + result['vplaylist'][response].play_call + '</div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" href="' + result['vplaylist'][response].url + '" class="art-ttl" >' + result['vplaylist'][response].name + '</a><div class="subttl">' + result['vplaylist'][response].no_songs + ' Videos</div></div><a href="javascript:void(0)" class="dots icon-ic_more_ver_1-05"></a></div></div></div>';
+                });
+                response_html += '</div>';
+            } else if (result['movie'] && result['movie'].length > 0) {
+                response_html += '<div class="block-head clearfix1"><h3>Movies</h3>';
+                response_html += '</div><div class="block-content clearfix1" id="moviesearch">';
+                $.each(result['movie'], function (response) {
+                    response_html += '<div class="movie-block-artist boxshadow clearfix1"><div class="movie-img"><a id="pajax_a" href="' + result['movie'][response].url + '">' + result['movie'][response].movie_thumb + '</a><div id="movie_id_' + result['movie'][response].id + '" class="movieblock_add icon-ic_watchlist_add" onclick="' + result['movie'][response].watchlist_call + '"></div>' + result['movie'][response].is_rent;
+                    response_html += '<div class="artistmovieover">' + result['movie'][response].censor_certificate + '<div class="movie-details">' + result['movie'][response].genre + '</div>';
+                    response_html += '<div class="users-rating"><span class="users">USER\'S rating</span> <span>' + result['movie'][response].rating + ' / 10</span></div><div class="movie-actions"><a class="btn-highlight" href="' + result['movie'][response].url + '">Play</a></div><div class="movie-close"> <i class="icon-ic_cancel"></i></div><div class="clear"></div></div></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['movie'][response].url + '" title="' + result['movie'][response].name + '"> ' + result['movie'][response].name + '</a><div class="subttl">' + result['movie'][response].date_lang + '</div></div></div></div>';
+                });
+                response_html += '</div></div>';
+            } else if (result['collection'] && result['collection'].length > 0) {
+                            response_html += '<div class="block-head clearfix1"><h3>Collections</h3>';
+                            response_html +='</div><div class="block-content clearfix1" id="collectionsearch">';
+                            $.each(result['collection'], function (response) {
+                              response_html += '<div class="block-artist theme-artist block-album boxshadow clearfix1"><div class="art-img"><a id="pajax_a"  href="' + result['collection'][response].url + '" >' + result['collection'][response].collection_thumb + '</a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['collection'][response].url + '" title="' + result['collection'][response].name + '">' + result['collection'][response].name + '</a><div class="subttl">'  + result['collection'][response].no_movies + ' Movies</div></div></div></div>';
+                        });
+                        response_html += '</div></div>';
+                        
+                    } else if (result['theme'] && result['theme'].length > 0) {
+                         response_html += '<div class="block-head clearfix1"><h3>Themes</h3>';
+                            response_html +='</div><div class="block-content clearfix1" id="themesearch">';
+                            $.each(result['theme'], function (response) {
+                            response_html += '<div class="block-artist theme-artist block-album boxshadow clearfix1"><div class="art-img"><a id="pajax_a"  href="' + result['theme'][response].url + '" >' + result['theme'][response].theme_thumb + '</a></div><div class="ttl-box clearfix1"><div class="leftbox"><a id="pajax_a" class="art-ttl" href="' + result['theme'][response].url + '" title="' + result['theme'][response].name + '">' + result['theme'][response].name + '</a><div class="subttl">'  + result['theme'][response].no_movies + ' Movies</div></div></div></div>';
+                        });
+                        response_html += '</div></div>';
+                        
+                    }
+            if (result.loadmore != ' ' || result.loadmore != undefined || result.loadmore != 'undefined') {
+                $('.load_more_button_search').remove();
+                response_html += ' ' + result.loadmore;
+            }
+            if (type == 'tvshow' || type == 'tvshows' || type == 'tvepisodes' || type == 'tvsepisode') {
+                $("#stab9").html(response_html);
+            } else if (type == 'videos' || type == 'video' || type == 'vplaylist') {
+                $("#stab8").html(response_html);
+            } else if (type == 'movies' || type == 'movie' || type == 'collection') {
+                $("#stab3").html(response_html);
+            }
+            isajax = false;
+            //$("#stab9").append(response_html);
+            $('.verscroll').scroll(function () {
+                var elem = $('.verscroll');
+                if ($(this).scrollTop() + $(this).height() == $(this)[0].scrollHeight) {
+                    if (!isajax) {
+                        isajax = true;
+                        search_load_more();
+                    }
+                }
+            });
+        }
+    });
+});
+function search_ga_event(url){
+    console.log('search_ga_event '+url);
+    ga('send', 'event', {
+        eventCategory: 'Search',
+        eventAction: 'click',
+        eventLabel: url
+    });
+}
